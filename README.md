@@ -13,6 +13,13 @@ substituir a planilha de Excel que "demanda muito tempo para alimentar".
 > de nome, a ordem das fases e o que não fazer. `db/schemas.sql`, `docs/FUNCTIONS.md` e
 > `docs/PAGINAS.md` são as fontes canônicas de tabelas, funções e rotas.
 
+## Onde fica cada parte
+
+O **frontend oficial** é o projeto no Lovable (identidade Construtora Record) —
+detalhes, links e segredos em [`docs/LOVABLE.md`](docs/LOVABLE.md). Este repositório
+é a fonte canônica do **banco**, das **Edge Functions** e da **documentação**, e
+guarda também a implementação de referência da Fase 1 em React/Vite (`src/`).
+
 ## Estado atual — Fase 1 (Fundação) concluída
 
 | Entregável da fase 1 (`docs/PLANO.md`) | Onde está |
@@ -24,9 +31,16 @@ substituir a planilha de Excel que "demanda muito tempo para alimentar".
 | Layout base, seletor de obra e menu por papel | `src/components/layout/` |
 | Dashboard `/` por obra | `src/pages/Dashboard.tsx` |
 
-As telas de campo (recebimento, lançamento na laje), as Edge Functions de OCR/laudo e
-o modo offline entram nas fases 2 e 3 do `docs/PLANO.md`. No menu, esses itens aparecem
-marcados como "em breve".
+## Fase 2 — em andamento
+
+| Entregável | Onde está |
+|---|---|
+| `create_pending_tests()`, `set_conformity_flag()`, alerta de não conformidade e `approve_concreting()` | `supabase/migrations/20260819000400_business_functions.sql` |
+| `extract-invoice-ocr`, `extract-test-report`, `match-report-to-concreting`, `evaluate-conformity`, `notify-manager` | `supabase/functions/` |
+| Telas de cadastro, campo, aprovação e laudos | projeto Lovable (`docs/LOVABLE.md`) |
+
+O modo offline com `sync-offline-batch`, os relatórios e o cron de ensaios em atraso
+ficam para a Fase 3 do `docs/PLANO.md`.
 
 ## Como rodar o banco
 

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RastreConcreto">
+  <rect width="64" height="64" rx="14" fill="#1f2937" />
+  <!-- corpo de prova cilindrico: o ensaio de 7 e 28 dias -->
+  <ellipse cx="32" cy="20" rx="15" ry="6.5" fill="#e2e8f0" />
+  <path d="M17 20v24c0 3.6 6.7 6.5 15 6.5s15-2.9 15-6.5V20c0 3.6-6.7 6.5-15 6.5S17 23.6 17 20z" fill="#cbd5e1" />
+  <ellipse cx="32" cy="20" rx="9" ry="3.8" fill="#94a3b8" />
+</svg>

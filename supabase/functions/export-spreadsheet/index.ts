@@ -25,12 +25,27 @@ interface ExportRow {
   "Slump (cm)": number | string;
   "Temperatura (°C)": number | string;
   "Peça especial": string;
+  "Saída da central": string;
+  "Chegada na obra": string;
+  "Início da descarga": string;
+  "Fim da descarga": string;
+  Remessa: string;
   Peça: string;
   "fck da peça (MPa)": number | string;
   "Responsável técnico": string;
   "fck 7 dias (MPa)": number | string;
   "fck 28 dias (MPa)": number | string;
   Conformidade: string;
+}
+
+/** Horario no formato que a obra le, no fuso de Brasilia. */
+function hourOf(value: string | null): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -60,7 +75,8 @@ Deno.serve(async (req) => {
         `id, title, concreting_date, status,
          truck_receipts(
            id, invoice_number, truck_number, fck_required, slump_value,
-           temperature, is_special_piece
+           temperature, is_special_piece, supplier_delivery_code,
+           invoice_issued_at, site_arrival_at, discharge_start_at, discharge_end_at
          ),
          placement_records(
            truck_receipt_id,
@@ -112,6 +128,11 @@ Deno.serve(async (req) => {
         slump_value: number;
         temperature: number | null;
         is_special_piece: boolean;
+        supplier_delivery_code: string | null;
+        invoice_issued_at: string | null;
+        site_arrival_at: string | null;
+        discharge_start_at: string | null;
+        discharge_end_at: string | null;
       }[];
 
       const placements = (concreting.placement_records ?? []) as unknown as {
@@ -151,6 +172,11 @@ Deno.serve(async (req) => {
             "Slump (cm)": receipt.slump_value,
             "Temperatura (°C)": receipt.temperature ?? "—",
             "Peça especial": receipt.is_special_piece ? "Sim" : "Não",
+            "Saída da central": hourOf(receipt.invoice_issued_at),
+            "Chegada na obra": hourOf(receipt.site_arrival_at),
+            "Início da descarga": hourOf(receipt.discharge_start_at),
+            "Fim da descarga": hourOf(receipt.discharge_end_at),
+            Remessa: receipt.supplier_delivery_code ?? "—",
             Peça: placement?.pieces?.name ?? "—",
             "fck da peça (MPa)": placement?.pieces?.fck_required ?? "—",
             "Responsável técnico": placement?.profiles?.full_name ?? "—",

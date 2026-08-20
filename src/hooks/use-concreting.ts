@@ -16,6 +16,11 @@ export interface ConcretingReceipt {
   ocr_status: OcrStatus;
   received_by: string;
   created_at: string;
+  invoice_issued_at: string | null;
+  site_arrival_at: string | null;
+  discharge_start_at: string | null;
+  discharge_end_at: string | null;
+  supplier_delivery_code: string | null;
   profiles: { full_name: string } | null;
   /** true enquanto o registro só existe no aparelho. */
   is_pending?: boolean;
@@ -88,6 +93,12 @@ export function useConcreting(concretingId: string | undefined) {
             ocr_status: "pending",
             received_by: "",
             created_at: item.created_at,
+            invoice_issued_at: (payload.invoice_issued_at as string) ?? null,
+            site_arrival_at: (payload.site_arrival_at as string) ?? null,
+            discharge_start_at: (payload.discharge_start_at as string) ?? null,
+            discharge_end_at: null,
+            supplier_delivery_code:
+              (payload.supplier_delivery_code as string) ?? null,
             profiles: null,
             is_pending: true,
           };
@@ -140,6 +151,8 @@ export function useConcreting(concretingId: string | undefined) {
            truck_receipts(
              id, invoice_number, truck_number, fck_required, slump_value, temperature,
              is_special_piece, invoice_photo_path, ocr_status, received_by, created_at,
+             invoice_issued_at, site_arrival_at, discharge_start_at, discharge_end_at,
+             supplier_delivery_code,
              profiles:received_by(full_name)
            ),
            placement_records(

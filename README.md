@@ -104,6 +104,26 @@ Tokens da Construtora Record em `src/index.css` (oklch) e utilitários de marca
 vinho `#732230`, grafite `#1a1a1a`, cinza institucional `#f1f0f5`, fonte Archivo,
 `--radius: 0.375rem`.
 
+## Horários da entrega
+
+Cada recebimento guarda os quatro marcos que a obra acompanha, espelhando o portal
+da concreteira (TOPCON/Lemix):
+
+| Marco | Coluna | Origem |
+|---|---|---|
+| Emissão da NF (saída da central) | `invoice_issued_at` | digitado ou portal |
+| Chegada na obra | `site_arrival_at` | digitado ou portal |
+| Início da descarga | `discharge_start_at` | digitado ou portal |
+| Fim da descarga | `discharge_end_at` | **calculado**: é o início da descarga do caminhão seguinte |
+
+O fim da descarga nunca é digitado — o trigger `trg_truck_receipts_discharge_window`
+recalcula a janela de toda a concretagem sempre que um início de descarga entra,
+muda ou é removido, inclusive quando um caminhão é registrado fora de ordem. O
+último caminhão do dia fica sem fim, porque não há próximo.
+
+`supplier_delivery_code` guarda o número da remessa do portal: é por ele que o
+preenchimento automático vai casar a entrega com o recebimento.
+
 ## Papéis
 
 O papel **efetivo** é sempre `site_members.site_role` — por obra, nunca global.

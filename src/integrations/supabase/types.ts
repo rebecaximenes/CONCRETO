@@ -196,6 +196,14 @@ export interface Database {
           received_by: string;
           client_local_id: string | null;
           synced_at: string | null;
+          /** Emissão da NF = saída da central. */
+          invoice_issued_at: string | null;
+          site_arrival_at: string | null;
+          discharge_start_at: string | null;
+          /** Calculado pelo banco: início da descarga do caminhão seguinte. */
+          discharge_end_at: string | null;
+          /** Número da remessa no portal da concreteira. */
+          supplier_delivery_code: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -214,6 +222,11 @@ export interface Database {
           received_by: string;
           client_local_id?: string | null;
           synced_at?: string | null;
+          invoice_issued_at?: string | null;
+          site_arrival_at?: string | null;
+          discharge_start_at?: string | null;
+          discharge_end_at?: string | null;
+          supplier_delivery_code?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["truck_receipts"]["Insert"]

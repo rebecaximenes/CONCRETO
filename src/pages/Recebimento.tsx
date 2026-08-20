@@ -1,7 +1,14 @@
 import * as React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Camera, Loader2, ScanLine, Thermometer } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Clock,
+  Loader2,
+  ScanLine,
+  Thermometer,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -28,7 +35,7 @@ import { useConcreting } from "@/hooks/use-concreting";
 import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
 import { newClientLocalId } from "@/lib/concreting";
-import { errorMessage } from "@/lib/format";
+import { errorMessage, toTimestamp } from "@/lib/format";
 import { enqueue } from "@/lib/offline-queue";
 import { cacheRead, cacheWrite } from "@/lib/reference-cache";
 import { useAuth } from "@/providers/AuthProvider";
@@ -54,6 +61,12 @@ export default function Recebimento() {
   const [temperature, setTemperature] = React.useState("");
   const [photo, setPhoto] = React.useState<File | null>(null);
   const [reading, setReading] = React.useState(false);
+  // Horários da entrega (docs: emissão da NF = saída da central). O fim da
+  // descarga não é digitado: o banco calcula pelo início do caminhão seguinte.
+  const [deliveryCode, setDeliveryCode] = React.useState("");
+  const [issuedTime, setIssuedTime] = React.useState("");
+  const [arrivalTime, setArrivalTime] = React.useState("");
+  const [dischargeTime, setDischargeTime] = React.useState("");
 
   const siteId = detail.data?.site_id;
 
@@ -94,6 +107,16 @@ export default function Recebimento() {
       const clientLocalId = newClientLocalId();
       const isLocalConcreting = detail.data?.is_local ?? false;
 
+      const concretingDate =
+        detail.data?.concreting_date ?? new Date().toISOString().slice(0, 10);
+
+      const times = {
+        supplier_delivery_code: deliveryCode.trim() || null,
+        invoice_issued_at: toTimestamp(concretingDate, issuedTime),
+        site_arrival_at: toTimestamp(concretingDate, arrivalTime),
+        discharge_start_at: toTimestamp(concretingDate, dischargeTime),
+      };
+
       const payload = {
         client_local_id: clientLocalId,
         ...(isLocalConcreting
@@ -106,6 +129,7 @@ export default function Recebimento() {
         slump_value: Number(slump),
         is_special_piece: isSpecial,
         temperature: isSpecial && temperature ? Number(temperature) : null,
+        ...times,
       };
 
       // Sem internet (ou concretagem que ainda não subiu) o registro fica no
@@ -136,8 +160,9 @@ export default function Recebimento() {
           slump_value: Number(slump),
           is_special_piece: isSpecial,
           temperature: isSpecial && temperature ? Number(temperature) : null,
+          ...times,
           received_by: profile!.id,
-          client_local_id: newClientLocalId(),
+          client_local_id: clientLocalId,
         })
         .select("id")
         .single();
@@ -329,6 +354,57 @@ export default function Recebimento() {
                 onChange={(event) => setSlump(event.target.value)}
                 placeholder="9.5"
               />
+            </div>
+
+            <div className="space-y-3 rounded-md border p-3">
+              <div className="flex items-center gap-2">
+                <Clock className="size-4 text-muted-foreground" aria-hidden />
+                <p className="text-sm font-medium">Horários da entrega</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Estes horários vêm do portal da concreteira. O fim da descarga é
+                calculado sozinho: é o início da descarga do caminhão seguinte.
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="emissao">Emissão da NF (saída da central)</Label>
+                  <Input
+                    id="emissao"
+                    type="time"
+                    value={issuedTime}
+                    onChange={(event) => setIssuedTime(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="chegada">Chegada na obra</Label>
+                  <Input
+                    id="chegada"
+                    type="time"
+                    value={arrivalTime}
+                    onChange={(event) => setArrivalTime(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="inicio-descarga">Início da descarga</Label>
+                  <Input
+                    id="inicio-descarga"
+                    type="time"
+                    value={dischargeTime}
+                    onChange={(event) => setDischargeTime(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="remessa">Remessa (concreteira)</Label>
+                  <Input
+                    id="remessa"
+                    inputMode="numeric"
+                    value={deliveryCode}
+                    onChange={(event) => setDeliveryCode(event.target.value)}
+                    placeholder="16327"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between rounded-md border p-3">

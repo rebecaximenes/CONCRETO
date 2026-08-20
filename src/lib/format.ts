@@ -43,6 +43,39 @@ export function formatNumber(
   })}${suffix}`;
 }
 
+/** "14h32" — formato que a obra usa para horario. */
+export function formatTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  return `${String(date.getHours()).padStart(2, "0")}h${String(
+    date.getMinutes(),
+  ).padStart(2, "0")}`;
+}
+
+/** Junta a data da concretagem com o horario digitado (HH:MM). */
+export function toTimestamp(
+  dateIso: string,
+  time: string,
+): string | null {
+  if (!time) return null;
+  const parsed = new Date(`${dateIso}T${time}:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+/** Duracao entre dois instantes, em "3h 17m". */
+export function formatDuration(
+  start: string | null | undefined,
+  end: string | null | undefined,
+): string {
+  if (!start || !end) return "—";
+  const minutes = Math.round(
+    (new Date(end).getTime() - new Date(start).getTime()) / 60000,
+  );
+  if (minutes < 0) return "—";
+  const hours = Math.floor(minutes / 60);
+  return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
+}
+
 /** Mensagem de erro legivel para o time de obra. */
 export function errorMessage(cause: unknown, fallback: string): string {
   if (cause instanceof Error && cause.message) return cause.message;

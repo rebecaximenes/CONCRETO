@@ -31,8 +31,10 @@ import {
   errorMessage,
   formatDate,
   formatDateTime,
+  formatDuration,
   formatFck,
   formatNumber,
+  formatTime,
 } from "@/lib/format";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -194,9 +196,27 @@ export default function ConcretagemDetalhe() {
                       ? ` · temperatura ${formatNumber(receipt.temperature, " °C")}`
                       : ""}
                   </p>
+                  {receipt.invoice_issued_at ||
+                  receipt.site_arrival_at ||
+                  receipt.discharge_start_at ? (
+                    <p className="text-sm text-muted-foreground">
+                      Saída da central {formatTime(receipt.invoice_issued_at)} ·
+                      chegada {formatTime(receipt.site_arrival_at)} · descarga{" "}
+                      {formatTime(receipt.discharge_start_at)}
+                      {receipt.discharge_end_at
+                        ? ` até ${formatTime(receipt.discharge_end_at)} (${formatDuration(
+                            receipt.discharge_start_at,
+                            receipt.discharge_end_at,
+                          )})`
+                        : " · descarregando"}
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground">
                     {receipt.profiles?.full_name ?? "—"} ·{" "}
                     {formatDateTime(receipt.created_at)}
+                    {receipt.supplier_delivery_code
+                      ? ` · remessa ${receipt.supplier_delivery_code}`
+                      : ""}
                   </p>
                 </li>
               ))}

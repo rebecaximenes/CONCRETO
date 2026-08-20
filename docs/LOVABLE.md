@@ -43,6 +43,7 @@ Nos secrets do projeto (Supabase / Lovable), antes de a leitura por IA funcionar
 |---|---|
 | `GEMINI_API_KEY` | Leitura da foto da NF e do PDF do laudo (Gemini 2.5 Pro) |
 | `RESEND_API_KEY` | E-mail ao gestor (`notify-manager`) |
+| `ANTHROPIC_API_KEY` | Relatório de conformidade (`generate-conformity-report`) |
 | `RESEND_FROM` | Remetente verificado no Resend (opcional) |
 | `APP_URL` | Base dos links dentro do e-mail (opcional) |
 

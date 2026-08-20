@@ -24,10 +24,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState, LoadingRows } from "@/components/states";
 import { useConcreting } from "@/hooks/use-concreting";
+import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
 import { newClientLocalId } from "@/lib/concreting";
 import { errorMessage } from "@/lib/format";
+import { enqueue } from "@/lib/offline-queue";
+import { cacheRead, cacheWrite } from "@/lib/reference-cache";
 import { useAuth } from "@/providers/AuthProvider";
+import { useSync } from "@/providers/SyncProvider";
 
 const BUCKET = "placement-photos";
 
@@ -37,6 +41,8 @@ export default function Lancamento() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const detail = useConcreting(concretingId);
+  const online = useOnline();
+  const { refreshQueue } = useSync();
 
   const [pieceId, setPieceId] = React.useState("");
   const [receiptId, setReceiptId] = React.useState("");
@@ -51,41 +57,86 @@ export default function Lancamento() {
     if (profile && !responsibleId) setResponsibleId(profile.id);
   }, [profile, responsibleId]);
 
+  type PieceOption = {
+    id: string;
+    name: string;
+    fck_required: number;
+    is_special: boolean;
+  };
+  type TeamMember = { id: string; full_name: string; is_active: boolean };
+
   const piecesQuery = useQuery({
     queryKey: ["pieces", siteId],
     enabled: Boolean(siteId),
-    queryFn: async () => {
+    queryFn: async (): Promise<PieceOption[]> => {
       const { data, error } = await supabase
         .from("pieces")
         .select("id, name, fck_required, is_special")
         .eq("site_id", siteId!)
         .order("name");
       if (error) throw error;
+      // Sem a lista de peças em cache a tela seria inútil offline.
+      cacheWrite(`pieces.${siteId}`, data ?? []);
       return data ?? [];
     },
   });
 
+  const pieces =
+    piecesQuery.data ?? cacheRead<PieceOption[]>(`pieces.${siteId}`) ?? [];
+
   const teamQuery = useQuery({
     queryKey: ["site-team", siteId],
     enabled: Boolean(siteId),
-    queryFn: async () => {
+    queryFn: async (): Promise<TeamMember[]> => {
       const { data, error } = await supabase
         .from("site_members")
         .select("profile_id, site_role, profiles!inner(id, full_name, is_active)")
         .eq("site_id", siteId!);
       if (error) throw error;
-      return (data ?? [])
-        .map((row) => row.profiles as unknown as {
-          id: string;
-          full_name: string;
-          is_active: boolean;
-        })
+      const members = (data ?? [])
+        .map((row) => row.profiles as unknown as TeamMember)
         .filter((item) => item?.is_active);
+      cacheWrite(`team.${siteId}`, members);
+      return members;
     },
   });
 
+  const team =
+    teamQuery.data ?? cacheRead<TeamMember[]>(`team.${siteId}`) ?? [];
+
   const save = useMutation({
     mutationFn: async () => {
+      const clientLocalId = newClientLocalId();
+      const isLocalConcreting = detail.data?.is_local ?? false;
+
+      if (!online || isLocalConcreting) {
+        const piece = pieces.find((item) => item.id === pieceId);
+        await enqueue({
+          client_local_id: clientLocalId,
+          entity: "placement_records",
+          site_id: siteId!,
+          payload: {
+            client_local_id: clientLocalId,
+            ...(isLocalConcreting
+              ? { concreting_local_id: concretingId }
+              : { concreting_id: concretingId }),
+            piece_id: pieceId,
+            truck_receipt_id: receiptId || null,
+            responsible_tech_id: responsibleId,
+            placed_at: new Date().toISOString(),
+            notes: notes.trim() || null,
+          },
+          photos: photos.map((file) => ({
+            blob: file,
+            name: file.name,
+            type: file.type,
+          })),
+          label: `Lançamento em ${piece?.name ?? "peça"}`,
+        });
+        await refreshQueue();
+        return clientLocalId;
+      }
+
       const { data: placement, error } = await supabase
         .from("placement_records")
         .insert({
@@ -123,7 +174,11 @@ export default function Lancamento() {
       return placement.id;
     },
     onSuccess: () => {
-      toast.success("Lançamento registrado.");
+      toast.success(
+        online
+          ? "Lançamento registrado."
+          : "Lançamento salvo no aparelho. Ele sobe sozinho quando a conexão voltar.",
+      );
       void queryClient.invalidateQueries({ queryKey: ["concreting", concretingId] });
       navigate(`/concretagens/${concretingId}`);
     },
@@ -183,7 +238,7 @@ export default function Lancamento() {
                   <SelectValue placeholder="Selecione a peça" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(piecesQuery.data ?? []).map((piece) => (
+                  {pieces.map((piece) => (
                     <SelectItem key={piece.id} value={piece.id}>
                       {piece.name} — {piece.fck_required} MPa
                       {piece.is_special ? " (especial)" : ""}
@@ -191,7 +246,7 @@ export default function Lancamento() {
                   ))}
                 </SelectContent>
               </Select>
-              {(piecesQuery.data ?? []).length === 0 && !piecesQuery.isLoading ? (
+              {pieces.length === 0 && !piecesQuery.isLoading ? (
                 <p className="text-xs text-muted-foreground">
                   Nenhuma peça cadastrada nesta obra — peça ao gestor para cadastrar.
                 </p>
@@ -224,7 +279,7 @@ export default function Lancamento() {
                   <SelectValue placeholder="Selecione o responsável" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(teamQuery.data ?? []).map((member) => (
+                  {team.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.full_name}
                     </SelectItem>

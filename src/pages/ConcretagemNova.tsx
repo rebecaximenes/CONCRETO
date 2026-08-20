@@ -15,22 +15,49 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/states";
+import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
 import { newClientLocalId } from "@/lib/concreting";
 import { errorMessage, todayIso } from "@/lib/format";
+import { enqueue } from "@/lib/offline-queue";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSite } from "@/providers/SiteProvider";
+import { useSync } from "@/providers/SyncProvider";
 
 export default function ConcretagemNova() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { activeSite } = useSite();
+  const online = useOnline();
+  const { refreshQueue } = useSync();
 
   const [title, setTitle] = React.useState("");
   const [date, setDate] = React.useState(todayIso());
 
   const create = useMutation({
     mutationFn: async () => {
+      const clientLocalId = newClientLocalId();
+
+      // Offline a concretagem já abre no aparelho: os recebimentos do dia
+      // penduram nela pelo `client_local_id` e sobem juntos depois.
+      if (!online) {
+        await enqueue({
+          client_local_id: clientLocalId,
+          entity: "concretings",
+          site_id: activeSite!.siteId,
+          payload: {
+            client_local_id: clientLocalId,
+            site_id: activeSite!.siteId,
+            title: title.trim() || null,
+            concreting_date: date,
+          },
+          photos: [],
+          label: `Concretagem ${title.trim() || "sem título"}`,
+        });
+        await refreshQueue();
+        return clientLocalId;
+      }
+
       const { data, error } = await supabase
         .from("concretings")
         .insert({
@@ -40,7 +67,7 @@ export default function ConcretagemNova() {
           created_by: profile!.id,
           // Nasce com o id do aparelho: e por ele que a sincronizacao
           // offline evita duplicar o registro depois.
-          client_local_id: newClientLocalId(),
+          client_local_id: clientLocalId,
         })
         .select("id")
         .single();
@@ -48,7 +75,11 @@ export default function ConcretagemNova() {
       return data.id;
     },
     onSuccess: (id) => {
-      toast.success("Concretagem iniciada.");
+      toast.success(
+        online
+          ? "Concretagem iniciada."
+          : "Concretagem aberta no aparelho. Ela sobe assim que a conexão voltar.",
+      );
       navigate(`/concretagens/${id}`);
     },
     onError: (cause) =>

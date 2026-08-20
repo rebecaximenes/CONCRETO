@@ -43,8 +43,30 @@ login, do layout e do painel.
 | `/recebimento/:concretingId` (foto da NF + OCR) e `/lancamento/:concretingId` | `src/pages/Recebimento.tsx`, `Lancamento.tsx` |
 | `/aprovacoes`, `/laudos`, `/alertas`, `/pendencias` | `src/pages/Aprovacoes.tsx`, `Laudos.tsx`, `Alertas.tsx`, `Pendencias.tsx` |
 
-O modo offline com `sync-offline-batch`, os relatórios e o cron de ensaios em atraso
-ficam para a Fase 3 do `docs/PLANO.md`.
+## Fase 3 — concluída
+
+| Entregável | Onde está |
+|---|---|
+| Fila offline em IndexedDB (com as fotos) e sincronização automática | `src/lib/offline-queue.ts`, `src/providers/SyncProvider.tsx` |
+| `sync-offline-batch` com upsert idempotente por `client_local_id` | `supabase/functions/sync-offline-batch/` |
+| Relatório de conformidade e tendências por IA + exportação de planilha | `src/pages/Relatorios.tsx`, `supabase/functions/generate-conformity-report/`, `export-spreadsheet/` |
+| Cron diário de ensaios em atraso | `supabase/migrations/20260819000500_cron_overdue_tests.sql` |
+| Perfil, membros da obra e papéis | `src/pages/Configuracoes.tsx` |
+
+### Como o offline funciona
+
+Sem conexão, o recebimento e o lançamento vão para uma fila no próprio aparelho
+(IndexedDB, fotos incluídas) e o cabeçalho passa a mostrar quantos registros estão
+pendentes. Quando a conexão volta, o app envia o lote para `sync-offline-batch`,
+que faz upsert por `client_local_id` — reenviar o mesmo lote não duplica nada. Só
+depois do upsert as fotos sobem, porque o caminho no bucket usa o id do servidor.
+
+Uma concretagem aberta offline também funciona: ela ganha um `client_local_id` que
+os recebimentos do dia referenciam, e o lote inteiro sobe junto.
+
+> As mutations usam `networkMode: "always"` no React Query. No padrão (`online`) elas
+> ficam **pausadas** enquanto o aparelho está sem rede — o registro nunca chegaria à
+> fila local, que é exatamente o ponto do modo offline.
 
 ## Como rodar o banco
 

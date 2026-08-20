@@ -25,10 +25,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ErrorState, LoadingRows } from "@/components/states";
 import { useConcreting } from "@/hooks/use-concreting";
+import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
 import { newClientLocalId } from "@/lib/concreting";
 import { errorMessage } from "@/lib/format";
+import { enqueue } from "@/lib/offline-queue";
+import { cacheRead, cacheWrite } from "@/lib/reference-cache";
 import { useAuth } from "@/providers/AuthProvider";
+import { useSync } from "@/providers/SyncProvider";
 
 const BUCKET = "invoice-photos";
 
@@ -38,6 +42,8 @@ export default function Recebimento() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const detail = useConcreting(concretingId);
+  const online = useOnline();
+  const { refreshQueue } = useSync();
 
   const [invoiceNumber, setInvoiceNumber] = React.useState("");
   const [truckNumber, setTruckNumber] = React.useState("");
@@ -51,19 +57,31 @@ export default function Recebimento() {
 
   const siteId = detail.data?.site_id;
 
+  type MixOption = {
+    id: string;
+    name: string;
+    fck_required: number;
+    supplier: string | null;
+  };
+
   const mixesQuery = useQuery({
     queryKey: ["concrete_mixes", siteId],
     enabled: Boolean(siteId),
-    queryFn: async () => {
+    queryFn: async (): Promise<MixOption[]> => {
       const { data, error } = await supabase
         .from("concrete_mixes")
         .select("id, name, fck_required, supplier")
         .eq("site_id", siteId!)
         .order("name");
       if (error) throw error;
+      // Guarda no aparelho: na próxima vez sem internet a lista continua lá.
+      cacheWrite(`mixes.${siteId}`, data ?? []);
       return data ?? [];
     },
   });
+
+  const mixes =
+    mixesQuery.data ?? cacheRead<MixOption[]>(`mixes.${siteId}`) ?? [];
 
   /**
    * Grava o recebimento e, quando ha foto da NF, sobe a imagem e chama a
@@ -72,6 +90,40 @@ export default function Recebimento() {
   const save = useMutation({
     mutationFn: async () => {
       if (!siteId) throw new Error("Concretagem sem obra.");
+
+      const clientLocalId = newClientLocalId();
+      const isLocalConcreting = detail.data?.is_local ?? false;
+
+      const payload = {
+        client_local_id: clientLocalId,
+        ...(isLocalConcreting
+          ? { concreting_local_id: concretingId }
+          : { concreting_id: concretingId }),
+        invoice_number: invoiceNumber.trim(),
+        truck_number: truckNumber.trim(),
+        concrete_mix_id: mixId || null,
+        fck_required: Number(fck),
+        slump_value: Number(slump),
+        is_special_piece: isSpecial,
+        temperature: isSpecial && temperature ? Number(temperature) : null,
+      };
+
+      // Sem internet (ou concretagem que ainda não subiu) o registro fica no
+      // aparelho e sobe depois — a frente de obra não pode parar por isso.
+      if (!online || isLocalConcreting) {
+        await enqueue({
+          client_local_id: clientLocalId,
+          entity: "truck_receipts",
+          site_id: siteId,
+          payload,
+          photos: photo
+            ? [{ blob: photo, name: photo.name, type: photo.type }]
+            : [],
+          label: `Recebimento NF ${invoiceNumber.trim() || "sem número"} · caminhão ${truckNumber.trim()}`,
+        });
+        await refreshQueue();
+        return { id: clientLocalId, ocr: false, queued: true };
+      }
 
       const { data: receipt, error } = await supabase
         .from("truck_receipts")
@@ -116,10 +168,14 @@ export default function Recebimento() {
       );
       setReading(false);
 
-      return { id: receipt.id, ocr: !ocrError, ocrError };
+      return { id: receipt.id, ocr: !ocrError, ocrError, queued: false };
     },
     onSuccess: (result) => {
-      if (result.ocr) {
+      if (result.queued) {
+        toast.success(
+          "Recebimento salvo no aparelho. Ele sobe sozinho quando a conexão voltar.",
+        );
+      } else if (result.ocr) {
         toast.success("Recebimento salvo e nota fiscal lida pela IA.");
       } else if (photo) {
         toast.warning(
@@ -229,9 +285,7 @@ export default function Recebimento() {
                 value={mixId}
                 onValueChange={(value) => {
                   setMixId(value);
-                  const mix = (mixesQuery.data ?? []).find(
-                    (item) => item.id === value,
-                  );
+                  const mix = mixes.find((item) => item.id === value);
                   if (mix) setFck(String(mix.fck_required));
                 }}
               >
@@ -239,7 +293,7 @@ export default function Recebimento() {
                   <SelectValue placeholder="Selecione o traço" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(mixesQuery.data ?? []).map((mix) => (
+                  {mixes.map((mix) => (
                     <SelectItem key={mix.id} value={mix.id}>
                       {mix.name} — {mix.fck_required} MPa
                     </SelectItem>

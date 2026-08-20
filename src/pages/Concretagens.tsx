@@ -29,6 +29,7 @@ import {
 } from "@/lib/concreting";
 import { errorMessage, formatDate } from "@/lib/format";
 import { useSite } from "@/providers/SiteProvider";
+import { useSync } from "@/providers/SyncProvider";
 
 interface ConcretingRow {
   id: string;
@@ -41,6 +42,7 @@ interface ConcretingRow {
 
 export default function Concretagens() {
   const { activeSite } = useSite();
+  const { pending } = useSync();
   const [status, setStatus] = React.useState<ConcretingStatus | "all">("all");
   const [date, setDate] = React.useState("");
 
@@ -70,6 +72,14 @@ export default function Concretagens() {
   });
 
   const rows = listQuery.data ?? [];
+
+  // Concretagens abertas offline aparecem no topo, marcadas: o técnico precisa
+  // enxergar o que ainda não subiu.
+  const pendingConcretings = pending.filter(
+    (item) =>
+      item.entity === "concretings" &&
+      (!activeSite || item.site_id === activeSite.siteId),
+  );
 
   return (
     <div className="space-y-5">
@@ -129,6 +139,36 @@ export default function Concretagens() {
           ) : null}
         </CardContent>
       </Card>
+
+      {pendingConcretings.length > 0 ? (
+        <div className="space-y-2">
+          {pendingConcretings.map((item) => (
+            <Card key={item.client_local_id} className="border-warning/50">
+              <CardContent className="p-0">
+                <Link
+                  to={`/concretagens/${item.client_local_id}`}
+                  className="flex flex-wrap items-center justify-between gap-3 p-4"
+                >
+                  <div>
+                    <p className="flex items-center gap-2 font-medium">
+                      <ClipboardList
+                        className="size-4 text-muted-foreground"
+                        aria-hidden
+                      />
+                      {String(item.payload.title ?? "Concretagem sem título")}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDate(String(item.payload.concreting_date ?? ""))} ·
+                      salva no aparelho
+                    </p>
+                  </div>
+                  <Badge variant="warning">Aguardando sincronização</Badge>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
 
       {listQuery.isLoading ? (
         <LoadingRows />

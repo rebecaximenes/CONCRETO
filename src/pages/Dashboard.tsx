@@ -25,6 +25,7 @@ import { useOnline } from "@/hooks/use-online";
 import type { ConcretingStatus } from "@/integrations/supabase/types";
 import { isProductionManager } from "@/config/roles";
 import { useSite } from "@/providers/SiteProvider";
+import { useSync } from "@/providers/SyncProvider";
 
 const STATUS_LABEL: Record<ConcretingStatus, string> = {
   in_progress: "Em andamento",
@@ -75,6 +76,7 @@ export default function Dashboard() {
   const { activeSite, activeRole, memberships, isLoading: sitesLoading } =
     useSite();
   const online = useOnline();
+  const { pending, isSyncing, syncNow } = useSync();
   const dashboard = useDashboard(activeSite?.siteId ?? null);
 
   if (sitesLoading) {
@@ -180,6 +182,38 @@ export default function Dashboard() {
           loading={loading}
         />
       </div>
+
+      {pending.length > 0 ? (
+        <Card className="border-warning/50">
+          <CardHeader>
+            <CardTitle>Aguardando sincronização</CardTitle>
+            <CardDescription>
+              {pending.length} registro(s) salvos no aparelho. Eles sobem sozinhos
+              quando a conexão voltar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <ul className="divide-y text-sm">
+              {pending.map((item) => (
+                <li key={item.client_local_id} className="py-2">
+                  <p className="font-medium">{item.label}</p>
+                  {item.last_error ? (
+                    <p className="text-xs text-destructive">{item.last_error}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!online || isSyncing}
+              onClick={() => void syncNow()}
+            >
+              {isSyncing ? "Sincronizando..." : "Sincronizar agora"}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

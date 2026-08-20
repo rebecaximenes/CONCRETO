@@ -95,7 +95,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Relatórios",
     icon: TrendingUp,
     roles: MANAGER_ONLY,
-    ready: false,
+    ready: true,
     phase: 3,
   },
   {
@@ -103,7 +103,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Configurações",
     icon: Settings,
     roles: ALL_ROLES,
-    ready: false,
+    ready: true,
     phase: 3,
   },
 ];

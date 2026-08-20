@@ -15,10 +15,11 @@ substituir a planilha de Excel que "demanda muito tempo para alimentar".
 
 ## Onde fica cada parte
 
-O **frontend oficial** é o projeto no Lovable (identidade Construtora Record) —
-detalhes, links e segredos em [`docs/LOVABLE.md`](docs/LOVABLE.md). Este repositório
-é a fonte canônica do **banco**, das **Edge Functions** e da **documentação**, e
-guarda também a implementação de referência da Fase 1 em React/Vite (`src/`).
+Este repositório é o **app completo** (React + Vite + Tailwind + shadcn/ui, PWA) com a
+identidade da Construtora Record, mais o **banco** (`db/`, `supabase/migrations/`) e as
+**Edge Functions** (`supabase/functions/`). O projeto no Lovable
+([`docs/LOVABLE.md`](docs/LOVABLE.md)) tem o mesmo banco e serve para edição visual do
+login, do layout e do painel.
 
 ## Estado atual — Fase 1 (Fundação) concluída
 
@@ -37,7 +38,10 @@ guarda também a implementação de referência da Fase 1 em React/Vite (`src/`)
 |---|---|
 | `create_pending_tests()`, `set_conformity_flag()`, alerta de não conformidade e `approve_concreting()` | `supabase/migrations/20260819000400_business_functions.sql` |
 | `extract-invoice-ocr`, `extract-test-report`, `match-report-to-concreting`, `evaluate-conformity`, `notify-manager` | `supabase/functions/` |
-| Telas de cadastro, campo, aprovação e laudos | projeto Lovable (`docs/LOVABLE.md`) |
+| `/obras`, `/obras/:siteId/tracos`, `/obras/:siteId/pecas` | `src/pages/Obras.tsx`, `Tracos.tsx`, `Pecas.tsx` |
+| `/concretagens`, `/concretagens/nova`, `/concretagens/:id` | `src/pages/Concretagens.tsx`, `ConcretagemNova.tsx`, `ConcretagemDetalhe.tsx` |
+| `/recebimento/:concretingId` (foto da NF + OCR) e `/lancamento/:concretingId` | `src/pages/Recebimento.tsx`, `Lancamento.tsx` |
+| `/aprovacoes`, `/laudos`, `/alertas`, `/pendencias` | `src/pages/Aprovacoes.tsx`, `Laudos.tsx`, `Alertas.tsx`, `Pendencias.tsx` |
 
 O modo offline com `sync-offline-batch`, os relatórios e o cron de ensaios em atraso
 ficam para a Fase 3 do `docs/PLANO.md`.
@@ -70,6 +74,13 @@ npm run dev             # http://localhost:8080
 ```
 
 Scripts: `npm run dev`, `npm run build`, `npm run preview`, `npm run lint`, `npm run typecheck`.
+
+## Identidade visual
+
+Tokens da Construtora Record em `src/index.css` (oklch) e utilitários de marca
+`record-hero`, `record-header`, `surface-card` e `brand-bar`:
+vinho `#732230`, grafite `#1a1a1a`, cinza institucional `#f1f0f5`, fonte Archivo,
+`--radius: 0.375rem`.
 
 ## Papéis
 

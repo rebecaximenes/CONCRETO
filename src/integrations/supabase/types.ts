@@ -410,7 +410,15 @@ export interface Database {
       is_site_member: { Args: { p_site_id: string }; Returns: boolean };
       is_production_manager: { Args: { p_site_id: string }; Returns: boolean };
       current_profile_role: { Args: Record<string, never>; Returns: string };
-      approve_concreting: { Args: { p_concreting_id: string }; Returns: Json };
+      approve_concreting: {
+        // Assinatura real da migracao: `approve_concreting(concreting_id, ...)`.
+        Args: {
+          concreting_id: string;
+          p_approve?: boolean;
+          p_reason?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["concretings"]["Row"];
+      };
     };
     Enums: Record<string, never>;
   };

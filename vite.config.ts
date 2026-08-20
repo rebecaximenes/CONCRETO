@@ -20,7 +20,7 @@ export default defineConfig({
         display: "standalone",
         orientation: "portrait",
         background_color: "#ffffff",
-        theme_color: "#1f2937",
+        theme_color: "#732230",
         icons: [
           { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
@@ -34,6 +34,18 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // A fonte Archivo vem do Google Fonts: cacheia para a obra offline.
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "google-fonts",
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
         navigateFallbackDenylist: [/^\/auth\//],
       },
     }),

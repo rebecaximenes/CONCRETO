@@ -1,9 +1,10 @@
 import * as React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { AlertCircle, HardHat, Loader2, MailCheck, WifiOff } from "lucide-react";
+import { AlertCircle, Loader2, MailCheck, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -66,18 +67,12 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-muted/40 px-4 py-10">
+    <div className="record-hero flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-md space-y-4">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-            <HardHat className="size-7" aria-hidden />
-          </span>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            RastreConcreto
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Rastreabilidade do concreto, do recebimento do caminhão aos ensaios
-            de 7 e 28 dias.
+        <div className="flex flex-col items-center gap-3 text-center">
+          <BrandMark size="lg" tone="light" />
+          <p className="text-[11px] uppercase tracking-[0.22em] text-primary-foreground/70">
+            Qualidade · Inovação · Sustentabilidade
           </p>
         </div>
 
@@ -103,11 +98,12 @@ export default function Login() {
           </Alert>
         ) : null}
 
-        <Card>
+        <Card className="bg-white/95 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Entrar</CardTitle>
             <CardDescription>
-              Use e-mail e senha no campo, ou receba um link mágico por e-mail.
+              Use suas credenciais da Record para acessar a rastreabilidade do
+              concreto.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -143,7 +139,7 @@ export default function Login() {
                       disabled={disabled}
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      placeholder="voce@construtora.com.br"
+                      placeholder="nome@construtorarecord.com.br"
                     />
                   </div>
                   <div className="space-y-2">
@@ -228,7 +224,7 @@ export default function Login() {
                         disabled={disabled}
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
-                        placeholder="voce@construtora.com.br"
+                        placeholder="nome@construtorarecord.com.br"
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={disabled}>
@@ -255,6 +251,10 @@ export default function Login() {
             ) : null}
           </CardContent>
         </Card>
+
+        <p className="text-center text-xs text-primary-foreground/60">
+          Construtora Record — RastreConcreto · v0.1
+        </p>
       </div>
     </div>
   );

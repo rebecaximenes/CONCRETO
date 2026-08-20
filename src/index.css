@@ -3,79 +3,54 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Design system — RastreConcreto / Construtora Record
+   * Identidade: vinho Record + grafite, mobile-first. Os mesmos tokens do
+   * Diário de Obra, em oklch, expostos como variáveis semânticas.
+   */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Cinza institucional #f1f0f5 */
+    --background: 0.958 0.005 295;
+    --foreground: 0.2 0 0;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 1 0 0;
+    --card-foreground: 0.2 0 0;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 1 0 0;
+    --popover-foreground: 0.2 0 0;
 
-    /* Cinza-concreto: identidade do RastreConcreto */
-    --primary: 215 28% 25%;
-    --primary-foreground: 210 40% 98%;
+    /* Vinho Record oficial #732230 */
+    --primary: 0.395 0.115 18;
+    --primary-foreground: 0.985 0.003 295;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    /* Grafite #1a1a1a */
+    --secondary: 0.2 0 0;
+    --secondary-foreground: 0.97 0.003 295;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 0.945 0.005 295;
+    --muted-foreground: 0.45 0.015 295;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    /* Vinho mais escuro, usado no gradiente da marca */
+    --accent: 0.32 0.11 11;
+    --accent-foreground: 0.985 0.003 295;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0.55 0.21 27;
+    --destructive-foreground: 0.985 0.003 295;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 26 83% 14%;
+    --success: 0.6 0.15 155;
+    --success-foreground: 0.985 0.003 295;
 
-    --success: 142 71% 45%;
-    --success-foreground: 210 40% 98%;
+    --warning: 0.75 0.15 75;
+    --warning-foreground: 0.2 0 0;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 215 28% 25%;
+    --border: 0.855 0.008 295;
+    --input: 0.855 0.008 295;
+    --ring: 0.531 0.105 10.9;
 
-    --radius: 0.6rem;
-  }
+    --radius: 0.375rem;
 
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 13%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 11%;
-
-    --secondary: 217 33% 18%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 18%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 217 33% 18%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 45%;
-    --destructive-foreground: 210 40% 98%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 26 83% 14%;
-
-    --success: 142 60% 40%;
-    --success-foreground: 210 40% 98%;
-
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 213 27% 84%;
+    --shadow-card: 0 1px 2px oklch(0.2 0 0 / 0.05), 0 8px 24px oklch(0.2 0 0 / 0.06);
+    --shadow-elevated: 0 2px 4px oklch(0.2 0 0 / 0.08), 0 16px 40px oklch(0.2 0 0 / 0.12);
   }
 }
 
@@ -88,5 +63,40 @@
     @apply bg-background text-foreground antialiased;
     /* area segura em celular/tablet usados na frente de obra */
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@layer components {
+  /* Fundo do login e das telas de marca: grafite -> vinho. */
+  .record-hero {
+    background: linear-gradient(
+      120deg,
+      color-mix(in oklab, oklch(var(--secondary)) 92%, transparent),
+      color-mix(in oklab, oklch(var(--primary)) 88%, black 6%)
+    );
+    color: oklch(var(--primary-foreground));
+  }
+
+  /* Cabeçalho vinho sólido do app autenticado. */
+  .record-header {
+    background-color: oklch(var(--primary));
+    color: oklch(var(--primary-foreground));
+    box-shadow: 0 2px 8px oklch(0.2 0 0 / 0.12);
+  }
+
+  .surface-card {
+    background-color: oklch(var(--card));
+    color: oklch(var(--card-foreground));
+    border: 1px solid oklch(var(--border));
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+  }
+
+  .brand-bar {
+    background: linear-gradient(
+      90deg,
+      oklch(var(--primary)),
+      oklch(var(--accent))
+    );
   }
 }

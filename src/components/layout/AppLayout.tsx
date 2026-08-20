@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ROLE_SHORT_LABEL } from "@/config/roles";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSite } from "@/providers/SiteProvider";
+import { BrandMark } from "@/components/BrandMark";
 import { RoleNav } from "./RoleNav";
 import { SiteSwitcher } from "./SiteSwitcher";
 import { SyncIndicator } from "./SyncIndicator";
@@ -29,7 +30,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-muted/30">
-      <header className="sticky top-0 z-40 border-b bg-background">
+      <header className="record-header sticky top-0 z-40">
         <div className="flex items-center gap-3 px-4 py-3">
           <Button
             variant="ghost"
@@ -41,24 +42,23 @@ export function AppLayout() {
             {menuOpen ? <X /> : <Menu />}
           </Button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold tracking-tight">
-              Rastre<span className="text-muted-foreground">Concreto</span>
-            </span>
-          </div>
+          <BrandMark tone="light" className="hidden sm:flex" />
+          <span className="text-base font-bold tracking-tight sm:hidden">
+            RastreConcreto
+          </span>
 
           <div className="ml-auto flex items-center gap-3">
             <SyncIndicator className="hidden sm:inline-flex" />
             <div className="hidden items-center gap-2 sm:flex">
               <Avatar>
-                <AvatarFallback>
+                <AvatarFallback className="bg-primary-foreground/15 text-primary-foreground">
                   {initials(profile?.full_name ?? "?")}
                 </AvatarFallback>
               </Avatar>
               <div className="leading-tight">
                 <p className="text-sm font-medium">{profile?.full_name}</p>
                 {activeRole ? (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-primary-foreground/70">
                     {ROLE_SHORT_LABEL[activeRole]}
                   </p>
                 ) : null}
@@ -75,7 +75,7 @@ export function AppLayout() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 border-t px-4 py-2">
+        <div className="flex items-center gap-3 border-t border-primary-foreground/15 bg-background px-4 py-2 text-foreground">
           <SiteSwitcher />
           {activeRole ? (
             <Badge variant="secondary" className="hidden sm:inline-flex">

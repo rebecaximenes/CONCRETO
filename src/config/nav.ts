@@ -47,7 +47,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Concretagens",
     icon: ClipboardList,
     roles: ALL_ROLES,
-    ready: false,
+    ready: true,
     phase: 2,
   },
   {
@@ -55,7 +55,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Obras",
     icon: Building2,
     roles: ALL_ROLES,
-    ready: false,
+    ready: true,
     phase: 2,
   },
   {
@@ -63,7 +63,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Aprovações",
     icon: ClipboardCheck,
     roles: MANAGER_ONLY,
-    ready: false,
+    ready: true,
     phase: 2,
   },
   {
@@ -71,7 +71,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Laudos",
     icon: FileText,
     roles: MANAGER_ONLY,
-    ready: false,
+    ready: true,
     phase: 2,
   },
   {
@@ -79,7 +79,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Alertas",
     icon: AlertTriangle,
     roles: ALL_ROLES,
-    ready: false,
+    ready: true,
     phase: 2,
   },
   {
@@ -87,7 +87,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Pendências",
     icon: Timer,
     roles: ALL_ROLES,
-    ready: false,
+    ready: true,
     phase: 2,
   },
   {

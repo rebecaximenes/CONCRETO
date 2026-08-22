@@ -50,6 +50,7 @@ supabase secrets set \
 | Segredo | Para quê | Obrigatório |
 |---|---|---|
 | `GEMINI_API_KEY` | OCR da nota fiscal e leitura do PDF do laudo | sim |
+| `GEMINI_MODEL` | Troca o modelo sem novo deploy (padrão `gemini-3.5-flash`) | opcional |
 | `ANTHROPIC_API_KEY` | Texto do relatório de conformidade | só para `/relatorios` |
 | `RESEND_API_KEY` | E-mail ao gestor | só para notificação |
 | `RESEND_FROM` | Remetente verificado no Resend | opcional |
@@ -57,6 +58,27 @@ supabase secrets set \
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` já existem
 automaticamente nas Edge Functions — não precisa cadastrar.
+
+### Escolha do modelo de visão — verificado com a chave do projeto
+
+O `gemini-2.5-pro` previsto nos documentos originais **não funciona mais**: chaves
+novas recebem `404 — no longer available to new users`. E os modelos `pro` da
+linha 3.x devolvem `429` de cara, porque no nível gratuito a cota deles é **zero**
+— só funcionam com faturamento ativo na conta Google.
+
+O padrão do código é `gemini-3.5-flash`, testado contra uma nota fiscal e um
+laudo em PDF:
+
+| Teste | Resultado | Tempo |
+|---|---|---|
+| NF nítida | `45231` (descartou série 003 e zeros à esquerda) | 1,8 s |
+| NF torta, desfocada e com sombra | `45231`, confiança 0,95 | 2,9 s |
+| Laudo PDF | NF `45231`; 7 dias **22,5 MPa**; 28 dias **32,6 MPa** | 4,8 s |
+
+No laudo o modelo calculou a média por idade (22,0 + 23,0 → 22,5) e ignorou o
+corpo de prova de 3 dias, como o prompt pede. Numa imagem ilegível ele devolve
+`invoice_number` nulo em vez de inventar — o recebimento fica com
+`ocr_status = 'failed'` para o técnico digitar.
 
 ---
 

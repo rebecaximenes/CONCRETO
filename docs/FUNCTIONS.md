@@ -32,7 +32,7 @@
   }
   ```
 - **Regras de negócio/validações:**
-  - Gera URL assinada do bucket privado `invoice-photos` e envia a imagem à **Gemini 2.5 Pro** (visão multimodal).
+  - Gera URL assinada do bucket privado `invoice-photos` e envia a imagem à **Gemini 3.5 Flash** (visão multimodal).
   - Atualiza `truck_receipts.ocr_status`: `processing` no início, `done` ao extrair, `failed` em erro.
   - Grava `truck_receipts.invoice_number` com o valor extraído; se a confiança for baixa ou nada for detectado, mantém `invoice_number` nulo e deixa `ocr_status = 'failed'` para preenchimento manual.
   - Não sobrescreve `invoice_number` já confirmado manualmente pelo técnico.
@@ -62,7 +62,7 @@
   }
   ```
 - **Regras de negócio/validações:**
-  - Envia o PDF completo à **Gemini 2.5 Pro** (contexto longo) para extração estruturada.
+  - Envia o PDF completo à **Gemini 3.5 Flash** (contexto longo) para extração estruturada.
   - Grava payload bruto em `test_reports.raw_extraction` (jsonb) para auditoria.
   - Atualiza `extraction_status`: `processing` → `done` (extração completa) / `needs_review` (dados ambíguos ou sem NF) / `failed`.
   - Para cada resultado válido, insere em `strength_results` (`age_days`, `measured_fck`, `test_date`), copiando `required_fck` da peça/traço vinculado (snapshot).

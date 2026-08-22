@@ -256,7 +256,7 @@ Funções helper (SECURITY DEFINER) para as políticas: `is_site_member(site_id)
 
 Todas via Supabase Edge Function (nunca direto do frontend), usando secrets no Supabase.
 
-- **API de visão/OCR — Gemini 2.5 Pro (Google):** leitura da foto da **nota fiscal** e do **laudo em PDF** (multimodal nativo, contexto longo para PDFs completos, custo baixo). Extrai número da NF, idade do ensaio e fck medido. É o motor do preenchimento automático que substitui a digitação no Excel.
+- **API de visão/OCR — Gemini 3.5 Flash (Google):** *(o `gemini-2.5-pro` originalmente previsto saiu de linha para chaves novas; ver `docs/DEPLOY.md`)* leitura da foto da **nota fiscal** e do **laudo em PDF** (multimodal nativo, contexto longo para PDFs completos, custo baixo). Extrai número da NF, idade do ensaio e fck medido. É o motor do preenchimento automático que substitui a digitação no Excel.
 - **API de IA para texto — Claude Haiku 4.5 (Anthropic):** geração dos **relatórios de conformidade em linguagem natural** e resumos de tendência a partir do histórico — rápido e barato para esse volume operacional. Para relatórios analíticos mais profundos sob demanda, escalar pontualmente para Claude Sonnet 4.6.
 - **Resend (email):** notificações ao **gestor de produção** — nova concretagem aguardando aprovação, alerta de não conformidade e ensaios em atraso. Free tier (100/dia) atende o volume descrito de uma equipe de obra.
 

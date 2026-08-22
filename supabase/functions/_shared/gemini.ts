@@ -1,6 +1,18 @@
 import { HttpError } from "./supabase.ts";
 
-const GEMINI_MODEL = "gemini-2.5-pro";
+/**
+ * Modelo de visao usado na leitura da NF e do laudo.
+ *
+ * O `gemini-2.5-pro` dos documentos originais saiu de linha: chaves novas
+ * recebem 404 ("no longer available to new users"). Os modelos `pro` da linha
+ * 3.x tambem nao servem por padrao — no nivel gratuito a cota deles e ZERO
+ * (429 na primeira chamada); exigem faturamento ativo.
+ *
+ * `gemini-3.5-flash` foi verificado contra nota fiscal e laudo reais em PDF:
+ * acerta o numero da NF ate em foto torta e desfocada, e calcula a media por
+ * idade no laudo. Trocavel pelo secret GEMINI_MODEL, sem novo deploy.
+ */
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.5-flash";
 const GEMINI_ENDPOINT =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 

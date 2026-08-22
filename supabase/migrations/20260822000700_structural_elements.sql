@@ -27,16 +27,20 @@ create table if not exists public.structural_elements (
   drawing_sheet text,                        -- Nº FOLHA + SETOR: SAL FUN LOC 002 R06
   drawing_revision text,                     -- REVISÃO: 6
 
-  planned_volume_m3 numeric(10,2) not null check (planned_volume_m3 >= 0),
+  -- Guarda a precisao do projeto (a planilha traz 1310,6410391...).
+  planned_volume_m3 numeric(12,4) not null check (planned_volume_m3 >= 0),
   waste_percent numeric(6,3) not null default 0 check (waste_percent >= 0),
 
-  -- PERDA PREVISTA (m³)
-  planned_waste_m3 numeric(10,2)
-    generated always as (round(planned_volume_m3 * waste_percent / 100, 2)) stored,
-  -- MÁXIMO A SER UTILIZADO (m³) = previsto + perda
-  max_volume_m3 numeric(10,2)
-    generated always as (round(planned_volume_m3 * (1 + waste_percent / 100), 2)) stored,
+  -- PERDA PREVISTA (m³) — a planilha arredonda em 1 casa: ROUND(F*G;1)
+  planned_waste_m3 numeric(12,4)
+    generated always as (round(planned_volume_m3 * waste_percent / 100, 1)) stored,
+  -- MÁXIMO A SER UTILIZADO = previsto + perda arredondada (I = F + H)
+  max_volume_m3 numeric(12,4)
+    generated always as (
+      planned_volume_m3 + round(planned_volume_m3 * waste_percent / 100, 1)
+    ) stored,
 
+  -- CICLO FINALIZADO da planilha: 'concluido' equivale a "SIM".
   status text not null default 'nao_iniciado'
     check (status in ('nao_iniciado','andamento','concluido')),
 
@@ -102,6 +106,17 @@ create policy structural_elements_delete on public.structural_elements
 -- ---------------------------------------------------------
 create or replace view public.element_volume_progress
 with (security_invoker = true) as
+with realizado as (
+  select c.structural_element_id,
+         coalesce(sum(t.volume_m3), 0)::numeric(12,4) as volume_aplicado,
+         count(distinct c.id)   as concretings_count,
+         count(t.id)            as trucks_count,
+         max(c.concreting_date) as last_concreting_date
+    from public.concretings c
+    left join public.truck_receipts t on t.concreting_id = c.id
+   where c.structural_element_id is not null
+   group by c.structural_element_id
+)
 select
   e.id                          as structural_element_id,
   e.site_id,
@@ -111,30 +126,40 @@ select
   e.concrete_spec,
   e.placement_method,
   e.status,
-  e.planned_volume_m3,
-  e.waste_percent,
-  e.planned_waste_m3,
-  e.max_volume_m3,
-  coalesce(sum(t.volume_m3), 0)::numeric(12,2)  as realized_volume_m3,
-  -- Saldo contra o previsto (negativo = ainda falta concretar)
-  round(coalesce(sum(t.volume_m3), 0) - e.planned_volume_m3, 2)  as balance_vs_planned_m3,
-  -- Saldo contra o maximo (positivo = estourou o previsto com perda)
-  round(coalesce(sum(t.volume_m3), 0) - e.max_volume_m3, 2)      as balance_vs_max_m3,
-  -- Perda real: quanto o consumo passou do volume de projeto, em %
-  case when e.planned_volume_m3 > 0
-       then round((coalesce(sum(t.volume_m3), 0) / e.planned_volume_m3 - 1) * 100, 2)
-       else null end                                             as actual_waste_percent,
+  e.planned_volume_m3,                                   -- F: VOLUME PREVISTO
+  e.waste_percent,                                       -- G: PERDA PREVISTA (%)
+  e.planned_waste_m3,                                    -- H: PERDA PREVISTA (m³)
+  e.max_volume_m3,                                       -- I: MÁXIMO A SER UTILIZADO
+  coalesce(r.volume_aplicado, 0)                as realized_volume_m3,   -- K
+  -- M: PERDA REALIZADA (m³) = aplicado - previsto, so depois de comecar
+  case when coalesce(r.volume_aplicado, 0) = 0 then null
+       else round(r.volume_aplicado - e.planned_volume_m3, 4) end
+                                                as actual_waste_m3,
+  -- N: PERDA (%) = M / previsto
+  case when coalesce(r.volume_aplicado, 0) = 0 or e.planned_volume_m3 = 0 then null
+       else round((r.volume_aplicado - e.planned_volume_m3) / e.planned_volume_m3 * 100, 2) end
+                                                as actual_waste_percent,
+  -- O: VOLUME TENDÊNCIA — se estourou o maximo, o proprio aplicado; se o ciclo
+  -- terminou, o aplicado; senao, projeta o maximo previsto.
+  case when e.max_volume_m3 < coalesce(r.volume_aplicado, 0) then r.volume_aplicado
+       when e.status = 'concluido' then coalesce(r.volume_aplicado, 0)
+       else e.max_volume_m3 end                 as trend_volume_m3,
+  -- PERDA REAL (%) do RESUMO = (tendência - previsto) / previsto
+  case when e.planned_volume_m3 = 0 then null
+       else round((
+         (case when e.max_volume_m3 < coalesce(r.volume_aplicado, 0) then r.volume_aplicado
+               when e.status = 'concluido' then coalesce(r.volume_aplicado, 0)
+               else e.max_volume_m3 end) - e.planned_volume_m3
+       ) / e.planned_volume_m3 * 100, 2) end    as trend_waste_percent,
   -- Avanco sobre o maximo a ser utilizado (0 a 1)
   case when e.max_volume_m3 > 0
-       then round(coalesce(sum(t.volume_m3), 0) / e.max_volume_m3, 4)
-       else null end                                             as progress_ratio,
-  count(distinct c.id)          as concretings_count,
-  count(t.id)                   as trucks_count,
-  max(c.concreting_date)        as last_concreting_date
+       then round(coalesce(r.volume_aplicado, 0) / e.max_volume_m3, 4)
+       else null end                            as progress_ratio,
+  coalesce(r.concretings_count, 0)              as concretings_count,
+  coalesce(r.trucks_count, 0)                   as trucks_count,
+  r.last_concreting_date
 from public.structural_elements e
-left join public.concretings c on c.structural_element_id = e.id
-left join public.truck_receipts t on t.concreting_id = c.id
-group by e.id;
+left join realizado r on r.structural_element_id = e.id;
 
 -- Bucket privado das plantas de indicacao.
 insert into storage.buckets (id, name, public)
@@ -173,3 +198,97 @@ create policy element_drawings_delete on storage.objects
         then ((storage.foldername(name))[1])::uuid end
     )
   );
+
+-- ---------------------------------------------------------
+-- Marcacao colorida na planta de indicacao.
+--
+-- Hoje a equipe imprime a planta e pinta a area concretada, anotando na
+-- legenda a DATA e a NOTA FISCAL de cada cor — uma cor por caminhao. Aqui a
+-- marcacao vira dado: cada area e um poligono ligado ao recebimento.
+--
+-- Os pontos ficam NORMALIZADOS (0 a 1) em relacao a pagina, entao a marcacao
+-- aparece no lugar certo em qualquer zoom, tela ou impressao.
+-- ---------------------------------------------------------
+create table if not exists public.element_drawing_marks (
+  id uuid primary key default gen_random_uuid(),
+  structural_element_id uuid not null
+    references public.structural_elements(id) on delete cascade,
+  -- De qual caminhao e esta area (a cor sai do recebimento).
+  truck_receipt_id uuid references public.truck_receipts(id) on delete set null,
+  page_number int not null default 1 check (page_number > 0),
+  -- [{"x":0.12,"y":0.44}, ...] — minimo de 3 pontos para fechar a area
+  points jsonb not null check (jsonb_array_length(points) >= 3),
+  color text not null,
+  label text,
+  created_by uuid not null references public.profiles(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_drawing_marks_element
+  on public.element_drawing_marks (structural_element_id);
+create index if not exists idx_drawing_marks_receipt
+  on public.element_drawing_marks (truck_receipt_id);
+
+drop trigger if exists trg_drawing_marks_updated_at on public.element_drawing_marks;
+create trigger trg_drawing_marks_updated_at
+  before update on public.element_drawing_marks
+  for each row execute function public.set_updated_at();
+
+alter table public.element_drawing_marks enable row level security;
+
+drop policy if exists drawing_marks_select on public.element_drawing_marks;
+create policy drawing_marks_select on public.element_drawing_marks
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.structural_elements e
+      where e.id = structural_element_id and public.is_site_member(e.site_id)
+    )
+  );
+
+-- Quem marca e o tecnico em campo, entao qualquer membro da obra insere.
+drop policy if exists drawing_marks_insert on public.element_drawing_marks;
+create policy drawing_marks_insert on public.element_drawing_marks
+  for insert to authenticated
+  with check (
+    created_by = auth.uid()
+    and exists (
+      select 1 from public.structural_elements e
+      where e.id = structural_element_id and public.is_site_member(e.site_id)
+    )
+  );
+
+drop policy if exists drawing_marks_update on public.element_drawing_marks;
+create policy drawing_marks_update on public.element_drawing_marks
+  for update to authenticated
+  using (created_by = auth.uid())
+  with check (created_by = auth.uid());
+
+drop policy if exists drawing_marks_delete on public.element_drawing_marks;
+create policy drawing_marks_delete on public.element_drawing_marks
+  for delete to authenticated
+  using (
+    created_by = auth.uid()
+    or exists (
+      select 1 from public.structural_elements e
+      where e.id = structural_element_id and public.is_production_manager(e.site_id)
+    )
+  );
+
+-- Legenda da planta, pronta como voces preenchem hoje: DATA | NOTA FISCAL | COR.
+create or replace view public.element_drawing_legend
+with (security_invoker = true) as
+select
+  m.structural_element_id,
+  m.id                                as mark_id,
+  m.page_number,
+  m.color,
+  m.label,
+  t.id                                as truck_receipt_id,
+  t.invoice_number,
+  t.truck_number,
+  t.volume_m3,
+  coalesce(t.discharge_start_at, t.created_at)::date as marked_date
+from public.element_drawing_marks m
+left join public.truck_receipts t on t.id = m.truck_receipt_id;

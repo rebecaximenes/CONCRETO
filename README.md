@@ -104,6 +104,30 @@ Tokens da Construtora Record em `src/index.css` (oklch) e utilitários de marca
 vinho `#732230`, grafite `#1a1a1a`, cinza institucional `#f1f0f5`, fonte Archivo,
 `--radius: 0.375rem`.
 
+## Previsto × realizado por elemento estrutural
+
+Espelha o controle que a obra faz hoje no Excel (`Controle.SALSA.Concreto`, abas
+PROJETO, ACOMPANHAMENTO e CONCRETAGENS). Cada elemento — estacas de fundação,
+estacas de contenção, blocos — guarda:
+
+| Campo | Origem |
+|---|---|
+| `planned_volume_m3` | VOLUME PREVISTO, do projeto |
+| `waste_percent` | PERDA PREVISTA (%) |
+| `planned_waste_m3` | **calculado** — PERDA PREVISTA (m³) |
+| `max_volume_m3` | **calculado** — MÁXIMO A SER UTILIZADO |
+| `realized_volume_m3` | soma do `volume_m3` dos caminhões recebidos |
+
+A view `element_volume_progress` entrega a aba ACOMPANHAMENTO pronta: previsto,
+perda, máximo, realizado, saldo contra o previsto e contra o máximo, perda real
+em % e o avanço. Conferido contra a planilha real: 1.310,64 m³ com 30% de perda
+dá 393,19 m³ de perda e 1.703,83 m³ de máximo.
+
+Cada concretagem aponta para um elemento (`concretings.structural_element_id`) e
+cada caminhão guarda o volume e a **cor** com que foi marcado na planta de
+indicação (`truck_receipts.marking_color`) — é a legenda DATA / NOTA FISCAL / COR
+que vocês preenchem à mão na planta hoje.
+
 ## Horários da entrega
 
 Cada recebimento guarda os quatro marcos que a obra acompanha, espelhando o portal

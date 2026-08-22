@@ -160,6 +160,8 @@ export interface Database {
           created_by: string;
           client_local_id: string | null;
           synced_at: string | null;
+          /** Peça estrutural que esta concretagem está executando. */
+          structural_element_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -172,6 +174,7 @@ export interface Database {
           created_by: string;
           client_local_id?: string | null;
           synced_at?: string | null;
+          structural_element_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["concretings"]["Insert"]> & {
           status?: ConcretingStatus;
@@ -204,6 +207,19 @@ export interface Database {
           discharge_end_at: string | null;
           /** Número da remessa no portal da concreteira. */
           supplier_delivery_code: string | null;
+          /** Volume entregue por este caminhão, conforme a nota fiscal. */
+          volume_m3: number | null;
+          /** Cor da área marcada na planta para este caminhão (#RRGGBB). */
+          marking_color: string | null;
+          checked_invoice_number: boolean;
+          checked_truck_number: boolean;
+          checked_fck: boolean;
+          checked_volume: boolean;
+          /** Calculada pelo banco a partir dos quatro acima: nunca enviar. */
+          fully_checked: boolean;
+          /** Carimbados por trigger quando a conferência começa: nunca enviar. */
+          checked_by: string | null;
+          checked_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -227,6 +243,12 @@ export interface Database {
           discharge_start_at?: string | null;
           discharge_end_at?: string | null;
           supplier_delivery_code?: string | null;
+          volume_m3?: number | null;
+          marking_color?: string | null;
+          checked_invoice_number?: boolean;
+          checked_truck_number?: boolean;
+          checked_fck?: boolean;
+          checked_volume?: boolean;
         };
         Update: Partial<
           Database["public"]["Tables"]["truck_receipts"]["Insert"]
@@ -417,8 +439,140 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["audit_log"]["Insert"]>;
         Relationships: [];
       };
+      structural_elements: {
+        Row: {
+          id: string;
+          site_id: string;
+          location: string;
+          floor_level: string | null;
+          name: string;
+          concrete_spec: string | null;
+          fck_required: number | null;
+          slump_target: number | null;
+          supplier: string | null;
+          placement_method: "bombeado" | "convencional";
+          drawing_sheet: string | null;
+          drawing_revision: string | null;
+          planned_volume_m3: number;
+          waste_percent: number;
+          /** Calculada pelo banco: round(previsto * perda% / 100, 1). */
+          planned_waste_m3: number;
+          /** Calculada pelo banco: previsto + perda prevista. */
+          max_volume_m3: number;
+          status: "nao_iniciado" | "andamento" | "concluido";
+          drawing_path: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** planned_waste_m3 e max_volume_m3 sao geradas: nunca enviar. */
+        Insert: {
+          id?: string;
+          site_id: string;
+          location: string;
+          floor_level?: string | null;
+          name: string;
+          concrete_spec?: string | null;
+          fck_required?: number | null;
+          slump_target?: number | null;
+          supplier?: string | null;
+          placement_method?: "bombeado" | "convencional";
+          drawing_sheet?: string | null;
+          drawing_revision?: string | null;
+          planned_volume_m3: number;
+          waste_percent?: number;
+          status?: "nao_iniciado" | "andamento" | "concluido";
+          drawing_path?: string | null;
+          notes?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["structural_elements"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      element_drawing_marks: {
+        Row: {
+          id: string;
+          structural_element_id: string;
+          truck_receipt_id: string | null;
+          page_number: number;
+          points: Json;
+          color: string;
+          label: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          structural_element_id: string;
+          truck_receipt_id?: string | null;
+          page_number?: number;
+          points: Json;
+          color: string;
+          label?: string | null;
+          created_by: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["element_drawing_marks"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
-    Views: Record<string, never>;
+    Views: {
+      element_volume_progress: {
+        Row: {
+          structural_element_id: string;
+          site_id: string;
+          location: string;
+          floor_level: string | null;
+          name: string;
+          concrete_spec: string | null;
+          fck_required: number | null;
+          slump_target: number | null;
+          placement_method: "bombeado" | "convencional";
+          status: "nao_iniciado" | "andamento" | "concluido";
+          /** F da planilha. */
+          planned_volume_m3: number;
+          /** G da planilha. */
+          waste_percent: number;
+          /** H da planilha. */
+          planned_waste_m3: number;
+          /** I da planilha: maximo a ser utilizado. */
+          max_volume_m3: number;
+          /** K da planilha: volume aplicado. */
+          realized_volume_m3: number;
+          /** M da planilha: perda realizada em m3. */
+          actual_waste_m3: number | null;
+          /** N da planilha: perda realizada em %. */
+          actual_waste_percent: number | null;
+          /** O da planilha: volume tendencia. */
+          trend_volume_m3: number;
+          /** Perda real do RESUMO: (tendencia - previsto) / previsto. */
+          trend_waste_percent: number | null;
+          progress_ratio: number | null;
+          concretings_count: number;
+          trucks_count: number;
+          last_concreting_date: string | null;
+        };
+        Relationships: [];
+      };
+      element_drawing_legend: {
+        Row: {
+          structural_element_id: string;
+          mark_id: string;
+          page_number: number;
+          color: string;
+          label: string | null;
+          truck_receipt_id: string | null;
+          invoice_number: string | null;
+          truck_number: string | null;
+          volume_m3: number | null;
+          marked_date: string | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       is_site_member: { Args: { p_site_id: string }; Returns: boolean };
       is_production_manager: { Args: { p_site_id: string }; Returns: boolean };
@@ -446,3 +600,10 @@ export type SiteMember = Tables<"site_members">;
 export type Concreting = Tables<"concretings">;
 export type NonconformityAlert = Tables<"nonconformity_alerts">;
 export type PendingTest = Tables<"pending_tests">;
+
+export type Views<T extends keyof Database["public"]["Views"]> =
+  Database["public"]["Views"][T]["Row"];
+
+export type StructuralElement = Tables<"structural_elements">;
+export type ElementVolumeProgress = Views<"element_volume_progress">;
+export type ElementDrawingLegend = Views<"element_drawing_legend">;

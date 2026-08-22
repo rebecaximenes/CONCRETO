@@ -1,5 +1,5 @@
 /**
- * Cache das listas de apoio (traços, peças, equipe) no proprio aparelho.
+ * Cache das listas de apoio (peças estruturais, peças, equipe) no proprio aparelho.
  * Sem isso a tela de campo fica inutilizavel offline: o tecnico nao teria a
  * peca para selecionar no lancamento.
  */

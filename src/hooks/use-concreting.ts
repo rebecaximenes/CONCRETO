@@ -21,6 +21,15 @@ export interface ConcretingReceipt {
   discharge_start_at: string | null;
   discharge_end_at: string | null;
   supplier_delivery_code: string | null;
+  volume_m3: number | null;
+  marking_color: string | null;
+  checked_invoice_number: boolean;
+  checked_truck_number: boolean;
+  checked_fck: boolean;
+  checked_volume: boolean;
+  /** Calculada pelo banco: os quatro itens conferidos. */
+  fully_checked: boolean;
+  checked_at: string | null;
   profiles: { full_name: string } | null;
   /** true enquanto o registro só existe no aparelho. */
   is_pending?: boolean;
@@ -47,6 +56,14 @@ export interface ConcretingDetail {
   created_by: string;
   approved_at: string | null;
   approved_by: string | null;
+  structural_element_id: string | null;
+  /** Peca estrutural da concretagem: e dela que sai o fck exigido. */
+  structural_elements: {
+    id: string;
+    name: string;
+    fck_required: number | null;
+    slump_target: number | null;
+  } | null;
   truck_receipts: ConcretingReceipt[];
   placement_records: ConcretingPlacement[];
   /** true quando a própria concretagem ainda não subiu para o servidor. */
@@ -99,6 +116,22 @@ export function useConcreting(concretingId: string | undefined) {
             discharge_end_at: null,
             supplier_delivery_code:
               (payload.supplier_delivery_code as string) ?? null,
+            volume_m3:
+              payload.volume_m3 === null || payload.volume_m3 === undefined
+                ? null
+                : Number(payload.volume_m3),
+            marking_color: (payload.marking_color as string | null) ?? null,
+            checked_invoice_number: Boolean(payload.checked_invoice_number),
+            checked_truck_number: Boolean(payload.checked_truck_number),
+            checked_fck: Boolean(payload.checked_fck),
+            checked_volume: Boolean(payload.checked_volume),
+            fully_checked: Boolean(
+              payload.checked_invoice_number &&
+                payload.checked_truck_number &&
+                payload.checked_fck &&
+                payload.checked_volume,
+            ),
+            checked_at: null,
             profiles: null,
             is_pending: true,
           };
@@ -138,6 +171,9 @@ export function useConcreting(concretingId: string | undefined) {
           created_by: "",
           approved_at: null,
           approved_by: null,
+          structural_element_id:
+            (payload.structural_element_id as string | null) ?? null,
+          structural_elements: null,
           truck_receipts: pendingReceipts,
           placement_records: pendingPlacements,
           is_local: true,
@@ -148,11 +184,15 @@ export function useConcreting(concretingId: string | undefined) {
         .from("concretings")
         .select(
           `id, site_id, title, concreting_date, status, created_by, approved_at, approved_by,
+           structural_element_id,
+           structural_elements(id, name, fck_required, slump_target),
            truck_receipts(
              id, invoice_number, truck_number, fck_required, slump_value, temperature,
              is_special_piece, invoice_photo_path, ocr_status, received_by, created_at,
              invoice_issued_at, site_arrival_at, discharge_start_at, discharge_end_at,
-             supplier_delivery_code,
+             supplier_delivery_code, volume_m3, marking_color,
+             checked_invoice_number, checked_truck_number, checked_fck,
+             checked_volume, fully_checked, checked_at,
              profiles:received_by(full_name)
            ),
            placement_records(

@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useParams,
+} from "react-router-dom";
 import { Toaster } from "sonner";
 
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -20,7 +26,7 @@ import Pecas from "@/pages/Pecas";
 import Pendencias from "@/pages/Pendencias";
 import Recebimento from "@/pages/Recebimento";
 import Relatorios from "@/pages/Relatorios";
-import Tracos from "@/pages/Tracos";
+import PecasEstruturais from "@/pages/PecasEstruturais";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { SiteProvider } from "@/providers/SiteProvider";
 import { SyncProvider } from "@/providers/SyncProvider";
@@ -46,6 +52,12 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Quem tiver o link antigo de /tracos cai no cadastro que o substituiu. */
+function RedirectToPecasEstruturais() {
+  const { siteId = "" } = useParams();
+  return <Navigate to={`/obras/${siteId}/pecas-estruturais`} replace />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -64,7 +76,15 @@ export default function App() {
                 >
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/obras" element={<Obras />} />
-                  <Route path="/obras/:siteId/tracos" element={<Tracos />} />
+                  <Route
+                    path="/obras/:siteId/pecas-estruturais"
+                    element={<PecasEstruturais />}
+                  />
+                  {/* O cadastro de tracos virou o de pecas estruturais. */}
+                  <Route
+                    path="/obras/:siteId/tracos"
+                    element={<RedirectToPecasEstruturais />}
+                  />
                   <Route path="/obras/:siteId/pecas" element={<Pecas />} />
                   <Route path="/concretagens" element={<Concretagens />} />
                   <Route

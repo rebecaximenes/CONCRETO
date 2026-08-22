@@ -120,7 +120,7 @@ export default function Obras() {
     <div className="space-y-5">
       <PageHeader
         title="Obras"
-        description="Cada obra tem seus próprios traços, peças e equipe."
+        description="Cada obra tem suas próprias peças estruturais e equipe."
         action={
           canManage ? (
             <Button onClick={() => setForm({ ...EMPTY_FORM })}>
@@ -147,7 +147,7 @@ export default function Obras() {
           }
           description={
             canManage
-              ? "A obra é o escopo de tudo: concretagens, traços, peças e permissões."
+              ? "A obra é o escopo de tudo: concretagens, peças estruturais e permissões."
               : "Peça ao gestor de produção para incluir você na obra."
           }
           action={
@@ -180,9 +180,9 @@ export default function Obras() {
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 <Button asChild variant="outline" size="sm">
-                  <Link to={`/obras/${site.id}/tracos`}>
+                  <Link to={`/obras/${site.id}/pecas-estruturais`}>
                     <Layers />
-                    Traços
+                    Peças estruturais
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="sm">

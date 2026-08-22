@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Camera,
@@ -22,14 +22,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { CheckedField } from "@/components/CheckedField";
 import { ErrorState, LoadingRows } from "@/components/states";
 import { useConcreting } from "@/hooks/use-concreting";
 import { useOnline } from "@/hooks/use-online";
@@ -37,7 +31,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { newClientLocalId } from "@/lib/concreting";
 import { errorMessage, toTimestamp } from "@/lib/format";
 import { enqueue } from "@/lib/offline-queue";
-import { cacheRead, cacheWrite } from "@/lib/reference-cache";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSync } from "@/providers/SyncProvider";
 
@@ -54,9 +47,20 @@ export default function Recebimento() {
 
   const [invoiceNumber, setInvoiceNumber] = React.useState("");
   const [truckNumber, setTruckNumber] = React.useState("");
-  const [mixId, setMixId] = React.useState<string>("");
   const [fck, setFck] = React.useState("");
+  const [volume, setVolume] = React.useState("");
   const [slump, setSlump] = React.useState("");
+  // Conferencia: o tecnico marca cada campo depois de bater com a nota e com
+  // o caminhao que chegou. Sem os quatro, o recebimento nao e registrado.
+  const [checks, setChecks] = React.useState({
+    invoice: false,
+    truck: false,
+    fck: false,
+    volume: false,
+  });
+  const [photoPath, setPhotoPath] = React.useState<string | null>(null);
+  // Um id so para a tela: a foto sobe com ele antes do registro existir.
+  const [clientLocalId] = React.useState(newClientLocalId);
   const [isSpecial, setIsSpecial] = React.useState(false);
   const [temperature, setTemperature] = React.useState("");
   const [photo, setPhoto] = React.useState<File | null>(null);
@@ -70,41 +74,112 @@ export default function Recebimento() {
 
   const siteId = detail.data?.site_id;
 
-  type MixOption = {
-    id: string;
-    name: string;
-    fck_required: number;
-    supplier: string | null;
-  };
+  // O fck exigido vem da peca estrutural da concretagem — nao ha mais
+  // cadastro de tracos para escolher aqui.
+  const element = detail.data?.structural_elements ?? null;
+  const requiredFck = element?.fck_required ?? null;
 
-  const mixesQuery = useQuery({
-    queryKey: ["concrete_mixes", siteId],
-    enabled: Boolean(siteId),
-    queryFn: async (): Promise<MixOption[]> => {
-      const { data, error } = await supabase
-        .from("concrete_mixes")
-        .select("id, name, fck_required, supplier")
-        .eq("site_id", siteId!)
-        .order("name");
-      if (error) throw error;
-      // Guarda no aparelho: na próxima vez sem internet a lista continua lá.
-      cacheWrite(`mixes.${siteId}`, data ?? []);
-      return data ?? [];
-    },
-  });
+  /** Numero da nota digitado com virgula ou ponto. */
+  const parsed = (value: string) => Number(value.replace(",", "."));
 
-  const mixes =
-    mixesQuery.data ?? cacheRead<MixOption[]>(`mixes.${siteId}`) ?? [];
+  const pendingChecks =
+    Number(!checks.invoice) +
+    Number(!checks.truck) +
+    Number(!checks.fck) +
+    Number(!checks.volume);
+
+  const fckBelowRequired =
+    requiredFck !== null && fck !== "" && parsed(fck) < requiredFck;
 
   /**
-   * Grava o recebimento e, quando ha foto da NF, sobe a imagem e chama a
-   * `extract-invoice-ocr` para preencher o numero da nota sozinha.
+   * Sobe a foto e le a nota ANTES de salvar, para o tecnico ja receber os
+   * campos preenchidos e poder conferir cada um contra o caminhao que chegou.
+   *
+   * A leitura nunca sobrescreve o que a pessoa ja digitou.
+   */
+  async function readInvoice(file: File) {
+    if (!siteId) return;
+    if (!online) {
+      // Sem internet a foto vai na fila junto com o registro; os campos ficam
+      // para o tecnico preencher a mao, e a conferencia continua valendo.
+      toast.info("Sem conexão: a foto sobe depois. Preencha os campos à mão.");
+      return;
+    }
+
+    setReading(true);
+    try {
+      // Caminho SEMPRE começa pelo uuid da obra — as policies do bucket
+      // decidem o acesso pela primeira pasta.
+      const extension = file.name.split(".").pop() ?? "jpg";
+      const path = `${siteId}/${clientLocalId}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+      setPhotoPath(path);
+
+      const { data, error } = await supabase.functions.invoke(
+        "extract-invoice-ocr",
+        { body: { invoice_photo_path: path } },
+      );
+      if (error) throw error;
+
+      const read = data as {
+        invoice_number: string | null;
+        truck_number: string | null;
+        fck: number | null;
+        volume_m3: number | null;
+        confidence: number;
+      };
+
+      let filled = 0;
+      if (read.invoice_number && !invoiceNumber) {
+        setInvoiceNumber(read.invoice_number);
+        filled += 1;
+      }
+      if (read.truck_number && !truckNumber) {
+        setTruckNumber(read.truck_number);
+        filled += 1;
+      }
+      if (read.fck !== null && !fck) {
+        setFck(String(read.fck));
+        filled += 1;
+      }
+      if (read.volume_m3 !== null && !volume) {
+        setVolume(String(read.volume_m3));
+        filled += 1;
+      }
+
+      // Toda leitura recomeca a conferencia: o que a IA preencheu ainda
+      // precisa ser batido com o caminhao.
+      setChecks({ invoice: false, truck: false, fck: false, volume: false });
+
+      if (filled === 0) {
+        toast.warning(
+          "Não consegui ler a nota. Preencha os campos à mão e confira cada um.",
+        );
+      } else {
+        toast.success(
+          `Nota lida: ${filled} ${filled === 1 ? "campo preenchido" : "campos preenchidos"}. Confira cada um.`,
+        );
+      }
+    } catch (cause) {
+      toast.error(
+        errorMessage(cause, "Falha ao ler a nota. Preencha os campos à mão."),
+      );
+    } finally {
+      setReading(false);
+    }
+  }
+
+  /**
+   * Grava o recebimento ja conferido.
    */
   const save = useMutation({
     mutationFn: async () => {
       if (!siteId) throw new Error("Concretagem sem obra.");
 
-      const clientLocalId = newClientLocalId();
       const isLocalConcreting = detail.data?.is_local ?? false;
 
       const concretingDate =
@@ -124,11 +199,16 @@ export default function Recebimento() {
           : { concreting_id: concretingId }),
         invoice_number: invoiceNumber.trim(),
         truck_number: truckNumber.trim(),
-        concrete_mix_id: mixId || null,
-        fck_required: Number(fck),
-        slump_value: Number(slump),
+        fck_required: parsed(fck),
+        volume_m3: volume ? parsed(volume) : null,
+        slump_value: parsed(slump),
         is_special_piece: isSpecial,
-        temperature: isSpecial && temperature ? Number(temperature) : null,
+        temperature: isSpecial && temperature ? parsed(temperature) : null,
+        // A conferencia foi feita em campo; ela sobe junto com o registro.
+        checked_invoice_number: checks.invoice,
+        checked_truck_number: checks.truck,
+        checked_fck: checks.fck,
+        checked_volume: checks.volume,
         ...times,
       };
 
@@ -155,11 +235,18 @@ export default function Recebimento() {
           concreting_id: concretingId,
           invoice_number: invoiceNumber.trim(),
           truck_number: truckNumber.trim(),
-          concrete_mix_id: mixId || null,
-          fck_required: Number(fck),
-          slump_value: Number(slump),
+          fck_required: parsed(fck),
+          volume_m3: volume ? parsed(volume) : null,
+          slump_value: parsed(slump),
           is_special_piece: isSpecial,
-          temperature: isSpecial && temperature ? Number(temperature) : null,
+          temperature: isSpecial && temperature ? parsed(temperature) : null,
+          checked_invoice_number: checks.invoice,
+          checked_truck_number: checks.truck,
+          checked_fck: checks.fck,
+          checked_volume: checks.volume,
+          // A leitura ja foi conferida na tela antes de salvar.
+          invoice_photo_path: photoPath,
+          ocr_status: "done",
           ...times,
           received_by: profile!.id,
           client_local_id: clientLocalId,
@@ -168,46 +255,17 @@ export default function Recebimento() {
         .single();
 
       if (error) throw error;
-      if (!photo) return { id: receipt.id, ocr: false };
-
-      // Caminho SEMPRE começa pelo uuid da obra — as policies do bucket
-      // decidem o acesso pela primeira pasta.
-      const extension = photo.name.split(".").pop() ?? "jpg";
-      const path = `${siteId}/${receipt.id}.${extension}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, photo, { upsert: true, contentType: photo.type });
-      if (uploadError) throw uploadError;
-
-      const { error: pathError } = await supabase
-        .from("truck_receipts")
-        .update({ invoice_photo_path: path })
-        .eq("id", receipt.id);
-      if (pathError) throw pathError;
-
-      setReading(true);
-      const { error: ocrError } = await supabase.functions.invoke(
-        "extract-invoice-ocr",
-        { body: { truck_receipt_id: receipt.id, invoice_photo_path: path } },
-      );
-      setReading(false);
-
-      return { id: receipt.id, ocr: !ocrError, ocrError, queued: false };
+      // A foto ja subiu e ja foi lida antes de salvar: aqui o registro nasce
+      // com os dados conferidos, sem uma segunda ida ao servidor.
+      return { id: receipt.id, queued: false };
     },
     onSuccess: (result) => {
       if (result.queued) {
         toast.success(
           "Recebimento salvo no aparelho. Ele sobe sozinho quando a conexão voltar.",
         );
-      } else if (result.ocr) {
-        toast.success("Recebimento salvo e nota fiscal lida pela IA.");
-      } else if (photo) {
-        toast.warning(
-          "Recebimento salvo. A leitura automática da NF falhou — confira o número na tela da concretagem.",
-        );
       } else {
-        toast.success("Recebimento salvo.");
+        toast.success("Recebimento conferido e registrado.");
       }
       void queryClient.invalidateQueries({ queryKey: ["concreting", concretingId] });
       navigate(`/concretagens/${concretingId}`);
@@ -249,7 +307,8 @@ export default function Recebimento() {
         <CardHeader>
           <CardTitle>Recebimento do caminhão</CardTitle>
           <CardDescription>
-            Fotografe a nota fiscal: a IA lê o número e preenche para você.
+            Fotografe a nota fiscal: a leitura automática preenche os campos e
+            você confere cada um.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -273,76 +332,101 @@ export default function Recebimento() {
                   accept="image/*"
                   capture="environment"
                   className="file:mr-3 file:rounded file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-secondary-foreground"
-                  onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+                  onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  setPhoto(file);
+                  if (file) void readInvoice(file);
+                }}
+                disabled={reading}
                 />
                 <Camera className="size-5 shrink-0 text-muted-foreground" aria-hidden />
               </div>
               <p className="text-xs text-muted-foreground">
-                Deixe o número da NF em branco para a leitura automática preencher.
+                A leitura automática preenche os campos abaixo. Confira cada um
+                antes de salvar.
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="nf">Número da nota fiscal</Label>
-              <Input
+            <div className="space-y-3 rounded-md border p-3">
+              <p className="text-sm font-medium">Conferência da nota</p>
+              <p className="text-xs text-muted-foreground">
+                Marque cada item depois de conferir com a nota e com o caminhão
+                que chegou.
+              </p>
+
+              <CheckedField
                 id="nf"
-                inputMode="numeric"
+                label="Número da nota fiscal"
                 value={invoiceNumber}
-                onChange={(event) => setInvoiceNumber(event.target.value)}
-                placeholder={photo ? "A IA preenche pela foto" : "45231"}
+                onValueChange={setInvoiceNumber}
+                checked={checks.invoice}
+                onCheckedChange={(value) =>
+                  setChecks((current) => ({ ...current, invoice: value }))
+                }
+                inputMode="numeric"
+                placeholder="15542"
               />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="caminhao">Número do caminhão betoneira</Label>
-              <Input
+              <CheckedField
                 id="caminhao"
-                required
+                label="Número do caminhão betoneira"
+                hint="Confira a placa do caminhão que chegou com a da nota."
                 value={truckNumber}
-                onChange={(event) => setTruckNumber(event.target.value)}
-                placeholder="BT-1042"
+                onValueChange={setTruckNumber}
+                checked={checks.truck}
+                onCheckedChange={(value) =>
+                  setChecks((current) => ({ ...current, truck: value }))
+                }
+                placeholder="SAH3H15"
               />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="traco">Traço recebido</Label>
-              <Select
-                value={mixId}
-                onValueChange={(value) => {
-                  setMixId(value);
-                  const mix = mixes.find((item) => item.id === value);
-                  if (mix) setFck(String(mix.fck_required));
-                }}
-              >
-                <SelectTrigger id="traco">
-                  <SelectValue placeholder="Selecione o traço" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mixes.map((mix) => (
-                    <SelectItem key={mix.id} value={mix.id}>
-                      {mix.name} — {mix.fck_required} MPa
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fck">fck do traço (MPa)</Label>
-              <Input
+              <CheckedField
                 id="fck"
-                required
+                label="fck (MPa)"
+                hint={
+                  requiredFck === null
+                    ? "Cadastre o fck na peça estrutural para o site comparar."
+                    : `Exigido pela peça${
+                        element?.name ? ` ${element.name}` : ""
+                      }: ${requiredFck} MPa.`
+                }
+                value={fck}
+                onValueChange={setFck}
+                checked={checks.fck}
+                onCheckedChange={(value) =>
+                  setChecks((current) => ({ ...current, fck: value }))
+                }
                 type="number"
                 inputMode="decimal"
                 step="0.5"
                 min="1"
-                value={fck}
-                onChange={(event) => setFck(event.target.value)}
+                placeholder="30"
+              />
+              {fckBelowRequired ? (
+                <p className="text-sm font-medium text-destructive">
+                  Atenção: o fck da nota é menor que o exigido para esta peça.
+                </p>
+              ) : null}
+
+              <CheckedField
+                id="volume"
+                label="Volume (m³)"
+                value={volume}
+                onValueChange={setVolume}
+                checked={checks.volume}
+                onCheckedChange={(value) =>
+                  setChecks((current) => ({ ...current, volume: value }))
+                }
+                type="number"
+                inputMode="decimal"
+                step="0.5"
+                min="0"
+                placeholder="8"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slump">Slump test (cm)</Label>
+              <Label htmlFor="slump">Slump teste (cm)</Label>
               <Input
                 id="slump"
                 required
@@ -354,6 +438,9 @@ export default function Recebimento() {
                 onChange={(event) => setSlump(event.target.value)}
                 placeholder="9.5"
               />
+              <p className="text-xs text-muted-foreground">
+                O único valor medido em campo.
+              </p>
             </div>
 
             <div className="space-y-3 rounded-md border p-3">
@@ -450,7 +537,18 @@ export default function Recebimento() {
               </Alert>
             ) : null}
 
-            <Button type="submit" className="w-full" disabled={save.isPending}>
+            <p className="text-sm text-muted-foreground">
+              {pendingChecks === 0
+                ? "Tudo conferido."
+                : pendingChecks === 1
+                  ? "Falta 1 conferência."
+                  : `Faltam ${pendingChecks} conferências.`}
+            </p>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={save.isPending || reading || pendingChecks > 0}
+            >
               {save.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />

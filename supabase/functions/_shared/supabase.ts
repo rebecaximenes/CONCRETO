@@ -22,6 +22,17 @@ export function userClient(req: Request): SupabaseClient {
   });
 }
 
+/**
+ * Chamada interna: outra Edge Function (ou o cron) autenticando com a service
+ * role. Nesses casos nao existe sessao de usuario para validar — quem chamou ja
+ * validou o vinculo com a obra antes.
+ */
+export function isServiceRoleRequest(req: Request): boolean {
+  const header = req.headers.get("Authorization") ?? "";
+  const token = header.replace(/^Bearer\s+/i, "").trim();
+  return token !== "" && token === SERVICE_ROLE_KEY;
+}
+
 export class HttpError extends Error {
   constructor(
     message: string,

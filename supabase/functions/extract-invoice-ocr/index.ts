@@ -5,6 +5,7 @@ import { handlePreflight, jsonResponse, errorResponse } from "../_shared/cors.ts
 import {
   HttpError,
   downloadAsBase64,
+  isServiceRoleRequest,
   requireSiteMember,
   requireUser,
   serviceClient,
@@ -35,7 +36,11 @@ Deno.serve(async (req) => {
 
     if (!receiptId) throw new HttpError("truck_receipt_id é obrigatório.");
 
-    const { client: asUser } = await requireUser(req);
+    // A foto que chega pela fila offline e processada por `sync-offline-batch`,
+    // que chama esta funcao com a service role — ali nao ha sessao de usuario
+    // para validar, e o vinculo com a obra ja foi conferido antes.
+    const internalCall = isServiceRoleRequest(req);
+    const asUser = internalCall ? null : (await requireUser(req)).client;
 
     const { data: receipt, error: receiptError } = await service
       .from("truck_receipts")
@@ -49,8 +54,11 @@ Deno.serve(async (req) => {
       throw new HttpError("Recebimento não encontrado.", 404);
     }
 
-    const siteId = (receipt.concretings as unknown as { site_id: string }).site_id;
-    await requireSiteMember(asUser, siteId);
+    if (asUser) {
+      const siteId = (receipt.concretings as unknown as { site_id: string })
+        .site_id;
+      await requireSiteMember(asUser, siteId);
+    }
 
     // Numero digitado pelo tecnico manda: a IA nunca sobrescreve.
     const existing = (receipt.invoice_number ?? "").trim();

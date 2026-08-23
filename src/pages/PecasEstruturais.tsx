@@ -100,7 +100,9 @@ function previewVolumes(volume: string, waste: string) {
   const planned = parseDecimal(volume);
   const percent = parseDecimal(waste);
   if (!Number.isFinite(planned) || !Number.isFinite(percent)) return null;
-  const wasteM3 = Math.round((planned * percent) / 100 / 0.1) * 0.1;
+  // Multiplicar por 10 e dividir, e nao dividir por 0.1: o segundo devolve
+  // 393.20000000000005 no lugar de 393,2.
+  const wasteM3 = Math.round(((planned * percent) / 100) * 10) / 10;
   return { wasteM3, max: planned + wasteM3 };
 }
 
@@ -209,7 +211,14 @@ export default function PecasEstruturais() {
       });
     },
     onError: (cause) =>
-      toast.error(errorMessage(cause, "Não foi possível excluir a peça.")),
+      toast.error(
+        errorMessage(
+          cause,
+          // O banco recusa apagar peca com concretagem: seria perder o
+          // historico de previsto x realizado dela.
+          "Não foi possível excluir. Peças com concretagens registradas não podem ser removidas.",
+        ),
+      ),
   });
 
   const preview = form

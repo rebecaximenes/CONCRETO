@@ -135,42 +135,47 @@ export default function Recebimento() {
         confidence: number;
       };
 
-      let filled = 0;
+      // Nomear os campos lidos deixa claro o que veio da IA e o que ainda
+      // falta digitar. A contagem fica FORA de qualquer setState: a funcao
+      // passada para o setState roda depois, e contar la dentro daria zero.
+      const readFields: string[] = [];
       if (read.invoice_number && !invoiceNumber) {
         setInvoiceNumber(read.invoice_number);
-        filled += 1;
+        readFields.push("número");
       }
       if (read.truck_number && !truckNumber) {
         setTruckNumber(read.truck_number);
-        filled += 1;
+        readFields.push("caminhão");
       }
       if (read.fck !== null && !fck) {
         setFck(String(read.fck));
-        filled += 1;
+        readFields.push("fck");
       }
       if (read.volume_m3 !== null && !volume) {
         setVolume(String(read.volume_m3));
-        filled += 1;
+        readFields.push("volume");
       }
       // Saida da central e o horario que o impresso ja traz pronto; os outros
       // tres sao anotados na obra.
       if (read.saida_usina && !issuedTime) {
         setIssuedTime(read.saida_usina);
-        filled += 1;
+        readFields.push("saída da usina");
       }
 
       // Toda leitura recomeca a conferencia: o que a IA preencheu ainda
       // precisa ser batido com o caminhao.
       setChecks({ invoice: false, truck: false, fck: false, volume: false });
 
-      if (filled === 0) {
+      if (readFields.length === 0) {
         toast.warning(
           "Não consegui ler a nota. Preencha os campos à mão e confira cada um.",
         );
       } else {
-        toast.success(
-          `Nota lida: ${filled} ${filled === 1 ? "campo preenchido" : "campos preenchidos"}. Confira cada um.`,
-        );
+        const last = readFields.pop()!;
+        const list = readFields.length
+          ? `${readFields.join(", ")} e ${last}`
+          : last;
+        toast.success(`Nota de remessa lida: ${list}. Confira cada um.`);
       }
     } catch (cause) {
       toast.error(

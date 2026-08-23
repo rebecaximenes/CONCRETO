@@ -145,7 +145,9 @@ recalcula a janela de toda a concretagem sempre que um início de descarga entra
 muda ou é removido, inclusive quando um caminhão é registrado fora de ordem. O
 último caminhão do dia fica sem fim, porque não há próximo.
 
-`supplier_delivery_code` guarda o número da remessa do portal: é por ele que o
+`supplier_delivery_code` guarda o número da remessa do portal (coluna
+reservada, ainda sem campo na tela — a integração com o portal não existe):
+é por ele que o
 preenchimento automático vai casar a entrega com o recebimento.
 
 ## Papéis

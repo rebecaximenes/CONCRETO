@@ -67,7 +67,6 @@ export default function Recebimento() {
   const [reading, setReading] = React.useState(false);
   // Horários da entrega (docs: emissão da NF = saída da central). O fim da
   // descarga não é digitado: o banco calcula pelo início do caminhão seguinte.
-  const [deliveryCode, setDeliveryCode] = React.useState("");
   const [issuedTime, setIssuedTime] = React.useState("");
   const [arrivalTime, setArrivalTime] = React.useState("");
   const [dischargeTime, setDischargeTime] = React.useState("");
@@ -199,7 +198,6 @@ export default function Recebimento() {
         detail.data?.concreting_date ?? new Date().toISOString().slice(0, 10);
 
       const times = {
-        supplier_delivery_code: deliveryCode.trim() || null,
         invoice_issued_at: toTimestamp(concretingDate, issuedTime),
         site_arrival_at: toTimestamp(concretingDate, arrivalTime),
         discharge_start_at: toTimestamp(concretingDate, dischargeTime),
@@ -492,16 +490,6 @@ export default function Recebimento() {
                     type="time"
                     value={dischargeTime}
                     onChange={(event) => setDischargeTime(event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="remessa">Remessa (concreteira)</Label>
-                  <Input
-                    id="remessa"
-                    inputMode="numeric"
-                    value={deliveryCode}
-                    onChange={(event) => setDeliveryCode(event.target.value)}
-                    placeholder="16327"
                   />
                 </div>
               </div>

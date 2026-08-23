@@ -29,6 +29,10 @@ comment on column public.truck_receipts.discharge_start_at is
   'Inicio da descarga do concreto.';
 comment on column public.truck_receipts.discharge_end_at is
   'Fim da descarga: calculado como o inicio da descarga do caminhao seguinte da mesma concretagem.';
+-- Reservado para a integracao com o portal da concreteira, que ainda nao
+-- existe. Fica fora da tela ate la: o numero da nota de remessa ja e o
+-- primeiro campo da conferencia, e dois campos de "remessa" confundem quem
+-- recebe o caminhao.
 comment on column public.truck_receipts.supplier_delivery_code is
   'Numero da remessa no sistema da concreteira, usado para casar a entrega.';
 

@@ -473,7 +473,12 @@ export interface Database {
           structural_element_id: string;
           truck_receipt_id: string | null;
           page_number: number;
+          /** Normalizados de 0 a 1: caem no lugar certo em qualquer zoom. */
           points: Json;
+          /** "ponto" marca uma estaca; "area" marca um trecho de laje. */
+          shape: "ponto" | "area";
+          /** Raio do círculo, fração da largura da página. Só para "ponto". */
+          radius: number;
           color: string;
           label: string | null;
           created_by: string;
@@ -486,6 +491,8 @@ export interface Database {
           truck_receipt_id?: string | null;
           page_number?: number;
           points: Json;
+          shape?: "ponto" | "area";
+          radius?: number;
           color: string;
           label?: string | null;
           created_by: string;
@@ -539,6 +546,7 @@ export interface Database {
           structural_element_id: string;
           mark_id: string;
           page_number: number;
+          shape: "ponto" | "area";
           color: string;
           label: string | null;
           truck_receipt_id: string | null;

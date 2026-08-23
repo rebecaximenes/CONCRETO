@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const { data: result, error } = await service
       .from("strength_results")
       .select(
-        "id, test_report_id, truck_receipt_id, piece_id, age_days, measured_fck, required_fck, is_conforming, test_reports!inner(site_id)",
+        "id, test_report_id, truck_receipt_id, age_days, measured_fck, required_fck, is_conforming, test_reports!inner(site_id)",
       )
       .eq("id", strength_result_id)
       .single();

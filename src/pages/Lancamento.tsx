@@ -27,7 +27,7 @@ import { useConcreting } from "@/hooks/use-concreting";
 import { useOnline } from "@/hooks/use-online";
 import { supabase } from "@/integrations/supabase/client";
 import { newClientLocalId } from "@/lib/concreting";
-import { errorMessage } from "@/lib/format";
+import { errorMessage, formatFck } from "@/lib/format";
 import { enqueue } from "@/lib/offline-queue";
 import { cacheRead, cacheWrite } from "@/lib/reference-cache";
 import { useAuth } from "@/providers/AuthProvider";
@@ -44,7 +44,6 @@ export default function Lancamento() {
   const online = useOnline();
   const { refreshQueue } = useSync();
 
-  const [pieceId, setPieceId] = React.useState("");
   const [receiptId, setReceiptId] = React.useState("");
   const [responsibleId, setResponsibleId] = React.useState("");
   const [notes, setNotes] = React.useState("");
@@ -57,32 +56,11 @@ export default function Lancamento() {
     if (profile && !responsibleId) setResponsibleId(profile.id);
   }, [profile, responsibleId]);
 
-  type PieceOption = {
-    id: string;
-    name: string;
-    fck_required: number;
-    is_special: boolean;
-  };
   type TeamMember = { id: string; full_name: string; is_active: boolean };
 
-  const piecesQuery = useQuery({
-    queryKey: ["pieces", siteId],
-    enabled: Boolean(siteId),
-    queryFn: async (): Promise<PieceOption[]> => {
-      const { data, error } = await supabase
-        .from("pieces")
-        .select("id, name, fck_required, is_special")
-        .eq("site_id", siteId!)
-        .order("name");
-      if (error) throw error;
-      // Sem a lista de peças em cache a tela seria inútil offline.
-      cacheWrite(`pieces.${siteId}`, data ?? []);
-      return data ?? [];
-    },
-  });
-
-  const pieces =
-    piecesQuery.data ?? cacheRead<PieceOption[]>(`pieces.${siteId}`) ?? [];
+  // A peca do lancamento e a da concretagem — nao ha escolha a fazer aqui.
+  const element = detail.data?.structural_elements ?? null;
+  const elementName = element?.name ?? "peça não definida";
 
   const teamQuery = useQuery({
     queryKey: ["site-team", siteId],
@@ -110,7 +88,6 @@ export default function Lancamento() {
       const isLocalConcreting = detail.data?.is_local ?? false;
 
       if (!online || isLocalConcreting) {
-        const piece = pieces.find((item) => item.id === pieceId);
         await enqueue({
           client_local_id: clientLocalId,
           entity: "placement_records",
@@ -120,7 +97,6 @@ export default function Lancamento() {
             ...(isLocalConcreting
               ? { concreting_local_id: concretingId }
               : { concreting_id: concretingId }),
-            piece_id: pieceId,
             truck_receipt_id: receiptId || null,
             responsible_tech_id: responsibleId,
             placed_at: new Date().toISOString(),
@@ -131,7 +107,7 @@ export default function Lancamento() {
             name: file.name,
             type: file.type,
           })),
-          label: `Lançamento em ${piece?.name ?? "peça"}`,
+          label: `Lançamento em ${elementName}`,
         });
         await refreshQueue();
         return clientLocalId;
@@ -141,7 +117,6 @@ export default function Lancamento() {
         .from("placement_records")
         .insert({
           concreting_id: concretingId,
-          piece_id: pieceId,
           truck_receipt_id: receiptId || null,
           responsible_tech_id: responsibleId,
           notes: notes.trim() || null,
@@ -215,7 +190,7 @@ export default function Lancamento() {
         <CardHeader>
           <CardTitle>Lançamento na laje</CardTitle>
           <CardDescription>
-            Registre em que peça o concreto está sendo lançado e quem é o
+            Registre o lançamento na peça desta concretagem e quem é o
             responsável técnico.
           </CardDescription>
         </CardHeader>
@@ -224,33 +199,25 @@ export default function Lancamento() {
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!pieceId) {
-                toast.error("Selecione a peça concretada.");
-                return;
-              }
               save.mutate();
             }}
           >
-            <div className="space-y-2">
-              <Label htmlFor="peca">Peça concretada</Label>
-              <Select value={pieceId} onValueChange={setPieceId}>
-                <SelectTrigger id="peca">
-                  <SelectValue placeholder="Selecione a peça" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pieces.map((piece) => (
-                    <SelectItem key={piece.id} value={piece.id}>
-                      {piece.name} — {piece.fck_required} MPa
-                      {piece.is_special ? " (especial)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {pieces.length === 0 && !piecesQuery.isLoading ? (
-                <p className="text-xs text-muted-foreground">
-                  Nenhuma peça cadastrada nesta obra — peça ao gestor para cadastrar.
+            {/* A peca nao se escolhe aqui: ela e a da concretagem. Um segundo
+                cadastro de pecas so criava duas verdades sobre o mesmo fck. */}
+            <div className="rounded-md border p-3">
+              <p className="text-sm text-muted-foreground">Peça concretada</p>
+              <p className="font-medium">{elementName}</p>
+              {element ? (
+                <p className="text-sm text-muted-foreground">
+                  {formatFck(element.fck_required)}
+                  {element.is_special ? " · peça especial" : ""}
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Esta concretagem ainda não tem peça estrutural. Escolha a peça
+                  na concretagem para o laudo chegar no lugar certo.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

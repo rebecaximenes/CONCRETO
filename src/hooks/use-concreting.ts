@@ -40,7 +40,6 @@ export interface ConcretingPlacement {
   placed_at: string;
   notes: string | null;
   recorded_by: string;
-  pieces: { name: string; fck_required: number; is_special: boolean } | null;
   truck_receipts: { invoice_number: string; truck_number: string } | null;
   profiles: { full_name: string } | null;
   placement_photos: { id: string; storage_path: string; caption: string | null }[];
@@ -63,6 +62,7 @@ export interface ConcretingDetail {
     name: string;
     fck_required: number | null;
     slump_target: number | null;
+    is_special: boolean;
   } | null;
   truck_receipts: ConcretingReceipt[];
   placement_records: ConcretingPlacement[];
@@ -151,7 +151,6 @@ export function useConcreting(concretingId: string | undefined) {
             placed_at: String(payload.placed_at ?? item.created_at),
             notes: (payload.notes as string | null) ?? null,
             recorded_by: "",
-            pieces: null,
             truck_receipts: null,
             profiles: null,
             placement_photos: [],
@@ -185,7 +184,7 @@ export function useConcreting(concretingId: string | undefined) {
         .select(
           `id, site_id, title, concreting_date, status, created_by, approved_at, approved_by,
            structural_element_id,
-           structural_elements(id, name, fck_required, slump_target),
+           structural_elements(id, name, fck_required, slump_target, is_special),
            truck_receipts(
              id, invoice_number, truck_number, fck_required, slump_value, temperature,
              is_special_piece, invoice_photo_path, ocr_status, received_by, created_at,
@@ -197,7 +196,6 @@ export function useConcreting(concretingId: string | undefined) {
            ),
            placement_records(
              id, placed_at, notes, recorded_by,
-             pieces(name, fck_required, is_special),
              truck_receipts(invoice_number, truck_number),
              profiles:responsible_tech_id(full_name),
              placement_photos(id, storage_path, caption)

@@ -247,12 +247,15 @@ export default function ConcretagemDetalhe() {
               {concreting.placement_records.map((placement) => (
                 <li key={placement.id} className="space-y-1 py-3">
                   <div className="flex flex-wrap items-center gap-2">
+                    {/* A peca e a da concretagem: o lancamento nao guarda
+                        uma copia dela. */}
                     <span className="font-medium">
-                      {placement.pieces?.name ?? "Peça removida"}
+                      {concreting.structural_elements?.name ?? "Peça não definida"}
                     </span>
-                    {placement.pieces ? (
+                    {concreting.structural_elements?.fck_required != null ? (
                       <Badge variant="outline">
-                        exige {formatFck(placement.pieces.fck_required)}
+                        exige{" "}
+                        {formatFck(concreting.structural_elements.fck_required)}
                       </Badge>
                     ) : null}
                     {placement.truck_receipts ? (

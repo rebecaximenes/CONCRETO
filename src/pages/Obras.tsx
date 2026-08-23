@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Layers, Package, Pencil, Plus } from "lucide-react";
+import { Building2, Layers, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -183,12 +183,6 @@ export default function Obras() {
                   <Link to={`/obras/${site.id}/pecas-estruturais`}>
                     <Layers />
                     Peças estruturais
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link to={`/obras/${site.id}/pecas`}>
-                    <Package />
-                    Peças
                   </Link>
                 </Button>
                 {canManage ? (

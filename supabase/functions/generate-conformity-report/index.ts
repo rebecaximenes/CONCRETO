@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
         service
           .from("strength_results")
           .select(
-            "age_days, measured_fck, required_fck, is_conforming, test_date, test_reports!inner(site_id), pieces(name)",
+            "age_days, measured_fck, required_fck, is_conforming, test_date, test_reports!inner(site_id), truck_receipts(concretings(structural_elements(name)))",
           )
           .eq("test_reports.site_id", site_id),
         service

@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
       .from("concretings")
       .select(
         `id, title, concreting_date, status,
+         structural_elements(name, fck_required),
          truck_receipts(
            id, invoice_number, truck_number, fck_required, slump_value,
            temperature, is_special_piece, supplier_delivery_code,
@@ -80,7 +81,6 @@ Deno.serve(async (req) => {
          ),
          placement_records(
            truck_receipt_id,
-           pieces(name, fck_required),
            profiles:responsible_tech_id(full_name)
          )`,
       )
@@ -137,7 +137,6 @@ Deno.serve(async (req) => {
 
       const placements = (concreting.placement_records ?? []) as unknown as {
         truck_receipt_id: string | null;
-        pieces: { name: string; fck_required: number } | null;
         profiles: { full_name: string } | null;
       }[];
 
@@ -177,8 +176,8 @@ Deno.serve(async (req) => {
             "Início da descarga": hourOf(receipt.discharge_start_at),
             "Fim da descarga": hourOf(receipt.discharge_end_at),
             Remessa: receipt.supplier_delivery_code ?? "—",
-            Peça: placement?.pieces?.name ?? "—",
-            "fck da peça (MPa)": placement?.pieces?.fck_required ?? "—",
+            Peça: concreting.structural_elements?.name ?? "—",
+            "fck da peça (MPa)": concreting.structural_elements?.fck_required ?? "—",
             "Responsável técnico": placement?.profiles?.full_name ?? "—",
             "fck 7 dias (MPa)": at7?.measured_fck ?? "—",
             "fck 28 dias (MPa)": at28?.measured_fck ?? "—",

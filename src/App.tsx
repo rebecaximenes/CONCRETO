@@ -22,7 +22,6 @@ import Laudos from "@/pages/Laudos";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 import Obras from "@/pages/Obras";
-import Pecas from "@/pages/Pecas";
 import Pendencias from "@/pages/Pendencias";
 import Recebimento from "@/pages/Recebimento";
 import Relatorios from "@/pages/Relatorios";
@@ -85,7 +84,6 @@ export default function App() {
                     path="/obras/:siteId/tracos"
                     element={<RedirectToPecasEstruturais />}
                   />
-                  <Route path="/obras/:siteId/pecas" element={<Pecas />} />
                   <Route path="/concretagens" element={<Concretagens />} />
                   <Route
                     path="/concretagens/nova"

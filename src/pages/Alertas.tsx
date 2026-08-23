@@ -37,8 +37,13 @@ interface AlertRow {
   required_fck: number;
   status: AlertStatus;
   created_at: string;
-  truck_receipts: { invoice_number: string; truck_number: string } | null;
-  strength_results: { pieces: { name: string } | null } | null;
+  truck_receipts: {
+    invoice_number: string;
+    truck_number: string;
+    concretings: {
+      structural_elements: { name: string } | null;
+    } | null;
+  } | null;
 }
 
 export default function Alertas() {
@@ -57,8 +62,10 @@ export default function Alertas() {
         .from("nonconformity_alerts")
         .select(
           `id, age_days, measured_fck, required_fck, status, created_at,
-           truck_receipts(invoice_number, truck_number),
-           strength_results(pieces(name))`,
+           truck_receipts(
+             invoice_number, truck_number,
+             concretings(structural_elements(name))
+           )`,
         )
         .eq("site_id", siteId!)
         .order("created_at", { ascending: false });
@@ -116,7 +123,8 @@ export default function Alertas() {
                       className="size-4 text-destructive"
                       aria-hidden
                     />
-                    {alert.strength_results?.pieces?.name ?? "Peça não identificada"}
+                    {alert.truck_receipts?.concretings?.structural_elements?.name ??
+                      "Peça não identificada"}
                     <Badge variant="outline">{alert.age_days} dias</Badge>
                   </div>
                   <p className="text-sm">

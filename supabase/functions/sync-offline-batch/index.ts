@@ -37,7 +37,6 @@ interface OfflinePlacement {
   client_local_id: string;
   concreting_id?: string;
   concreting_local_id?: string;
-  piece_id: string;
   truck_receipt_id?: string | null;
   truck_receipt_local_id?: string | null;
   responsible_tech_id: string;
@@ -253,7 +252,6 @@ Deno.serve(async (req) => {
         .upsert(
           {
             concreting_id: concretingId,
-            piece_id: item.piece_id,
             truck_receipt_id: receiptId,
             responsible_tech_id: item.responsible_tech_id,
             placed_at: item.placed_at,

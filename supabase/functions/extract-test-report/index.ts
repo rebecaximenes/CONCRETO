@@ -126,16 +126,16 @@ Deno.serve(async (req) => {
 
     const match = await matchReport(reportId, invoiceNumber, report.site_id);
 
-    // O fck exigido e o da PEÇA concretada; sem peca resolvida, cai para o
-    // fck do traco recebido (snapshot em truck_receipts.fck_required).
+    // O fck exigido e o da PEÇA ESTRUTURAL da concretagem; sem peca resolvida,
+    // cai para o fck lido na nota (snapshot em truck_receipts.fck_required).
     let requiredFck: number | null = null;
-    if (match.matched_piece_id) {
-      const { data: piece } = await service
-        .from("pieces")
+    if (match.matched_structural_element_id) {
+      const { data: element } = await service
+        .from("structural_elements")
         .select("fck_required")
-        .eq("id", match.matched_piece_id)
+        .eq("id", match.matched_structural_element_id)
         .single();
-      requiredFck = piece?.fck_required ?? null;
+      requiredFck = element?.fck_required ?? null;
     }
     if (requiredFck === null && match.matched_truck_receipt_id) {
       const { data: receipt } = await service
@@ -168,7 +168,6 @@ Deno.serve(async (req) => {
       results.map((result) => ({
         test_report_id: reportId,
         truck_receipt_id: match.matched_truck_receipt_id,
-        piece_id: match.matched_piece_id,
         age_days: result.age_days,
         measured_fck: result.measured_fck,
         required_fck: requiredFck,

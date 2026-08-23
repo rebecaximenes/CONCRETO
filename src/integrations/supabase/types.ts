@@ -126,28 +126,6 @@ export interface Database {
         >;
         Relationships: [];
       };
-      pieces: {
-        Row: {
-          id: string;
-          site_id: string;
-          name: string;
-          fck_required: number;
-          is_special: boolean;
-          location_description: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          site_id: string;
-          name: string;
-          fck_required: number;
-          is_special?: boolean;
-          location_description?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["pieces"]["Insert"]>;
-        Relationships: [];
-      };
       concretings: {
         Row: {
           id: string;
@@ -259,7 +237,6 @@ export interface Database {
         Row: {
           id: string;
           concreting_id: string;
-          piece_id: string;
           truck_receipt_id: string | null;
           responsible_tech_id: string;
           placed_at: string;
@@ -273,7 +250,6 @@ export interface Database {
         Insert: {
           id?: string;
           concreting_id: string;
-          piece_id: string;
           truck_receipt_id?: string | null;
           responsible_tech_id: string;
           placed_at?: string;
@@ -338,7 +314,6 @@ export interface Database {
           id: string;
           test_report_id: string;
           truck_receipt_id: string | null;
-          piece_id: string | null;
           age_days: number;
           measured_fck: number;
           required_fck: number;
@@ -351,7 +326,6 @@ export interface Database {
           id?: string;
           test_report_id: string;
           truck_receipt_id?: string | null;
-          piece_id?: string | null;
           age_days: number;
           measured_fck: number;
           required_fck: number;
@@ -451,6 +425,8 @@ export interface Database {
           slump_target: number | null;
           supplier: string | null;
           placement_method: "bombeado" | "convencional";
+          /** Peça especial: temperatura obrigatória e corpos de prova extras. */
+          is_special: boolean;
           drawing_sheet: string | null;
           drawing_revision: string | null;
           planned_volume_m3: number;
@@ -477,6 +453,7 @@ export interface Database {
           slump_target?: number | null;
           supplier?: string | null;
           placement_method?: "bombeado" | "convencional";
+          is_special?: boolean;
           drawing_sheet?: string | null;
           drawing_revision?: string | null;
           planned_volume_m3: number;

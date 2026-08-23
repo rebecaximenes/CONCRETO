@@ -6,7 +6,8 @@ import { HttpError, serviceClient } from "./supabase.ts";
 
 export interface MatchResult {
   matched_truck_receipt_id: string | null;
-  matched_piece_id: string | null;
+  /** Peca estrutural da concretagem daquele caminhao. */
+  matched_structural_element_id: string | null;
   match_type: "unique" | "none" | "ambiguous";
 }
 
@@ -26,7 +27,9 @@ export async function matchReport(
 
   const { data: receipts, error } = await service
     .from("truck_receipts")
-    .select("id, invoice_number, concreting_id, concretings!inner(site_id)")
+    .select(
+      "id, invoice_number, concreting_id, concretings!inner(site_id, structural_element_id)",
+    )
     .eq("concretings.site_id", siteId);
 
   if (error) throw new HttpError(error.message, 500);
@@ -48,22 +51,18 @@ export async function matchReport(
 
     return {
       matched_truck_receipt_id: null,
-      matched_piece_id: null,
+      matched_structural_element_id: null,
       match_type: candidates.length === 0 ? "none" : "ambiguous",
     };
   }
 
   const receipt = candidates[0];
 
-  // A peca vem do lancamento na laje daquele caminhao; quando ha mais de uma,
-  // nao da para escolher sozinho — o resultado fica sem peca.
-  const { data: placements } = await service
-    .from("placement_records")
-    .select("piece_id")
-    .eq("truck_receipt_id", receipt.id);
-
-  const pieceIds = [...new Set((placements ?? []).map((row) => row.piece_id))];
-  const matchedPieceId = pieceIds.length === 1 ? pieceIds[0] : null;
+  // A peca e a da concretagem daquele caminhao — direta, sem ambiguidade.
+  // Antes vinha do lancamento na laje e ficava nula quando havia mais de um.
+  const matchedElementId =
+    (receipt.concretings as unknown as { structural_element_id: string | null })
+      ?.structural_element_id ?? null;
 
   await service
     .from("test_reports")
@@ -75,7 +74,7 @@ export async function matchReport(
 
   return {
     matched_truck_receipt_id: receipt.id,
-    matched_piece_id: matchedPieceId,
+    matched_structural_element_id: matchedElementId,
     match_type: "unique",
   };
 }

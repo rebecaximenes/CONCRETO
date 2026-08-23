@@ -42,7 +42,8 @@ interface PendingConcreting {
     temperature: number | null;
     is_special_piece: boolean;
   }[];
-  placement_records: { id: string; pieces: { name: string } | null }[];
+  placement_records: { id: string }[];
+  structural_elements: { name: string } | null;
 }
 
 export default function Aprovacoes() {
@@ -63,7 +64,8 @@ export default function Aprovacoes() {
         .select(
           `id, title, concreting_date,
            truck_receipts(id, invoice_number, truck_number, fck_required, slump_value, temperature, is_special_piece),
-           placement_records(id, pieces(name))`,
+           placement_records(id),
+           structural_elements(name)`,
         )
         .eq("site_id", siteId!)
         .eq("status", "pending_approval")

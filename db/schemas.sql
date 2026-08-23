@@ -167,33 +167,11 @@ create trigger trg_truck_receipts_updated_at
   for each row execute function public.set_updated_at();
 
 -- ---------------------------------------------------------
--- pieces
--- ---------------------------------------------------------
-create table public.pieces (
-  id uuid primary key default gen_random_uuid(),
-  site_id uuid not null references public.sites(id) on delete cascade,
-  name text not null,
-  fck_required numeric(6,2) not null,
-  is_special boolean not null default false,
-  location_description text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create index idx_pieces_site on public.pieces (site_id);
-create index idx_pieces_is_special on public.pieces (is_special);
-
-create trigger trg_pieces_updated_at
-  before update on public.pieces
-  for each row execute function public.set_updated_at();
-
--- ---------------------------------------------------------
 -- placement_records
 -- ---------------------------------------------------------
 create table public.placement_records (
   id uuid primary key default gen_random_uuid(),
   concreting_id uuid not null references public.concretings(id) on delete cascade,
-  piece_id uuid not null references public.pieces(id) on delete restrict,
   truck_receipt_id uuid references public.truck_receipts(id) on delete set null,
   responsible_tech_id uuid not null references public.profiles(id) on delete restrict,
   placed_at timestamptz not null default now(),
@@ -206,7 +184,6 @@ create table public.placement_records (
 );
 
 create index idx_placement_records_concreting on public.placement_records (concreting_id);
-create index idx_placement_records_piece on public.placement_records (piece_id);
 create index idx_placement_records_receipt on public.placement_records (truck_receipt_id);
 create index idx_placement_records_responsible on public.placement_records (responsible_tech_id);
 create unique index uniq_placement_client_local on public.placement_records (recorded_by, client_local_id);
@@ -266,7 +243,6 @@ create table public.strength_results (
   id uuid primary key default gen_random_uuid(),
   test_report_id uuid not null references public.test_reports(id) on delete cascade,
   truck_receipt_id uuid references public.truck_receipts(id) on delete set null,
-  piece_id uuid references public.pieces(id) on delete set null,
   age_days int not null check (age_days in (7,28)),
   measured_fck numeric(6,2) not null,
   required_fck numeric(6,2) not null,
@@ -278,7 +254,6 @@ create table public.strength_results (
 
 create index idx_strength_results_report on public.strength_results (test_report_id);
 create index idx_strength_results_receipt on public.strength_results (truck_receipt_id);
-create index idx_strength_results_piece on public.strength_results (piece_id);
 create index idx_strength_results_conforming on public.strength_results (is_conforming);
 create index idx_strength_results_age on public.strength_results (age_days);
 
@@ -414,7 +389,6 @@ alter table public.site_members enable row level security;
 alter table public.concrete_mixes enable row level security;
 alter table public.concretings enable row level security;
 alter table public.truck_receipts enable row level security;
-alter table public.pieces enable row level security;
 alter table public.placement_records enable row level security;
 alter table public.placement_photos enable row level security;
 alter table public.test_reports enable row level security;
@@ -501,24 +475,6 @@ create policy concrete_mixes_update on public.concrete_mixes
   with check (public.is_production_manager(site_id));
 
 create policy concrete_mixes_delete on public.concrete_mixes
-  for delete to authenticated
-  using (public.is_production_manager(site_id));
-
--- ---------------- pieces ----------------
-create policy pieces_select on public.pieces
-  for select to authenticated
-  using (public.is_site_member(site_id));
-
-create policy pieces_insert on public.pieces
-  for insert to authenticated
-  with check (public.is_production_manager(site_id));
-
-create policy pieces_update on public.pieces
-  for update to authenticated
-  using (public.is_production_manager(site_id))
-  with check (public.is_production_manager(site_id));
-
-create policy pieces_delete on public.pieces
   for delete to authenticated
   using (public.is_production_manager(site_id));
 

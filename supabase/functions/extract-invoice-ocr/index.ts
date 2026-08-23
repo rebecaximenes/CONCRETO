@@ -1,4 +1,4 @@
-// extract-invoice-ocr — le a foto da nota fiscal do concreto usinado.
+// extract-invoice-ocr — le a foto da nota de remessa do concreto usinado.
 //
 // Dois modos:
 //
@@ -37,7 +37,7 @@ interface InvoiceExtraction {
   confidence: number;
 }
 
-// O documento que a obra recebe nao e uma nota fiscal comum: e o
+// O documento que a obra recebe nao e uma nota de remessa comum: e o
 // "COMPROVANTE DE SERVICO DE CONCRETAGEM" da concreteira, um formulario
 // impresso com rotulos proprios. O prompt cita os rotulos reais porque a
 // leitura generica confundia a placa com o nome do motorista.
@@ -45,13 +45,15 @@ const PROMPT =
   "Esta é a foto de um COMPROVANTE DE SERVIÇO DE CONCRETAGEM de concreto usinado " +
   "entregue em obra no Brasil (pode vir da concreteira LE MIX). É um formulário " +
   "impresso com campos rotulados. Extraia:\n" +
-  "- invoice_number: o número do documento, no campo rotulado \"Nº\" no canto " +
+  "- invoice_number: o número da NOTA DE REMESSA, no campo rotulado \"Nº\" no canto " +
   "superior direito (e repetido no rodapé). Vem no formato \"015.545\" — devolva " +
   "apenas os dígitos, sem o ponto e sem os zeros à esquerda: \"15545\".\n" +
-  "- truck_number: a PLACA do caminhão, no bloco \"DADOS DE TRANSPORTE\", campo " +
-  "rotulado \"PLACA\". Vem como \"RGS-8D94\" — devolva sem hífen e sem espaços: " +
-  "\"RGS8D94\". Se a PLACA não aparecer, use o campo \"BETONEIRA\". Nunca use o " +
-  "campo \"REMOTORISTA\" nem o nome do motorista.\n" +
+  "- truck_number: o NÚMERO DO CAMINHÃO, no bloco \"DADOS DE TRANSPORTE\", campo " +
+  "rotulado \"BETONEIRA\". O impresso traz zeros de preenchimento: \"CB0090\" é o " +
+  "caminhão \"CB90\". Devolva o valor SEM os zeros entre as letras e o número. " +
+  "NÃO use o campo \"PLACA\" — a placa é do veículo e não é o número que a obra " +
+  "controla. Também não use \"REMOTORISTA\" nem o nome do motorista. Se o campo " +
+  "\"BETONEIRA\" estiver ilegível, devolva nulo em vez de usar a placa.\n" +
   "- fck: a resistência em MPa, no campo \"FCK\" da linha \"Materiais adquiridos " +
   "para preparo e aplicação de\". Aparece como \"FCK 30,0 MPA\" — devolva 30. " +
   "Também pode aparecer na descrição do serviço como \"FCK 30,0 B0 ST 240\".\n" +
@@ -97,6 +99,20 @@ function clockTime(value: string | null | undefined): string | null {
   return `${String(hour).padStart(2, "0")}:${match[2]}`;
 }
 
+/**
+ * Numero do caminhao como a obra o chama.
+ *
+ * O impresso da concreteira preenche com zeros a esquerda — "CB0090" — mas na
+ * obra o caminhao e o "CB90". Tira so os zeros entre o prefixo de letras e o
+ * numero; o resto do texto fica como veio.
+ */
+function truckNumber(value: string | null | undefined): string | null {
+  const clean = (value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (clean === "") return null;
+  const parts = clean.match(/^([A-Z]+)0*([1-9]\d*)$/);
+  return parts ? `${parts[1]}${parts[2]}` : clean;
+}
+
 /** Numero so vale se for finito e positivo — a IA as vezes devolve 0. */
 function positive(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) && value > 0
@@ -129,7 +145,7 @@ Deno.serve(async (req) => {
     if (!receiptId) {
       if (!photoPath) {
         throw new HttpError(
-          "Informe invoice_photo_path para ler a nota fiscal.",
+          "Informe invoice_photo_path para ler a nota de remessa.",
         );
       }
 
@@ -155,7 +171,7 @@ Deno.serve(async (req) => {
 
       return jsonResponse({
         invoice_number: text(extraction.invoice_number),
-        truck_number: text(extraction.truck_number),
+        truck_number: truckNumber(extraction.truck_number),
         fck: positive(extraction.fck),
         volume_m3: positive(extraction.volume_m3),
         saida_usina: clockTime(extraction.saida_usina),
@@ -201,7 +217,7 @@ Deno.serve(async (req) => {
     }
 
     const path = photoPath ?? receipt.invoice_photo_path;
-    if (!path) throw new HttpError("Recebimento sem foto da nota fiscal.");
+    if (!path) throw new HttpError("Recebimento sem foto da nota de remessa.");
 
     ocrStarted = true;
     await service
@@ -238,7 +254,7 @@ Deno.serve(async (req) => {
 
     // O que o tecnico ja preencheu tem prioridade sobre a leitura.
     const volume = positive(extraction.volume_m3);
-    const truck = text(extraction.truck_number);
+    const truck = truckNumber(extraction.truck_number);
     const update: Record<string, unknown> = {
       invoice_number: number,
       ocr_status: "done",
@@ -271,7 +287,7 @@ Deno.serve(async (req) => {
     }
     const status = cause instanceof HttpError ? cause.status : 500;
     return errorResponse(
-      cause instanceof Error ? cause.message : "Erro ao ler a nota fiscal.",
+      cause instanceof Error ? cause.message : "Erro ao ler a nota de remessa.",
       status,
     );
   }

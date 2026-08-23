@@ -315,7 +315,7 @@ export default function Recebimento() {
         <CardHeader>
           <CardTitle>Recebimento do caminhão</CardTitle>
           <CardDescription>
-            Fotografe a nota fiscal: a leitura automática preenche os campos e
+            Fotografe a nota de remessa: a leitura automática preenche os campos e
             você confere cada um.
           </CardDescription>
         </CardHeader>
@@ -332,7 +332,7 @@ export default function Recebimento() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="foto-nf">Foto da nota fiscal</Label>
+              <Label htmlFor="foto-nf">Foto da nota de remessa</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="foto-nf"
@@ -364,7 +364,7 @@ export default function Recebimento() {
 
               <CheckedField
                 id="nf"
-                label="Número da nota fiscal"
+                label="Número da nota de remessa"
                 value={invoiceNumber}
                 onValueChange={setInvoiceNumber}
                 checked={checks.invoice}
@@ -538,7 +538,7 @@ export default function Recebimento() {
             {reading ? (
               <Alert variant="info">
                 <ScanLine />
-                <AlertTitle>Lendo a nota fiscal</AlertTitle>
+                <AlertTitle>Lendo a nota de remessa</AlertTitle>
                 <AlertDescription>
                   A IA está extraindo o número da NF da foto.
                 </AlertDescription>

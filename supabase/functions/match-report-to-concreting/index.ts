@@ -1,4 +1,4 @@
-// match-report-to-concreting — expoe o casamento por nota fiscal como Edge
+// match-report-to-concreting — expoe o casamento por nota de remessa como Edge
 // Function. Contrato em docs/FUNCTIONS.md.
 import { handlePreflight, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { HttpError } from "../_shared/supabase.ts";

@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       mimeType: mimeType === "application/octet-stream" ? "application/pdf" : mimeType,
       prompt:
         "Este é um laudo/relatório de ensaio de resistência à compressão de corpos de prova de concreto, emitido por laboratório no Brasil. " +
-        "Extraia: (1) o NÚMERO DA NOTA FISCAL do concreto citado no laudo (apenas dígitos, sem série nem zeros à esquerda); " +
+        "Extraia: (1) o NÚMERO DA NOTA DE REMESSA do concreto citado no laudo (apenas dígitos, sem série nem zeros à esquerda); " +
         "(2) a lista de resultados de resistência, cada um com a idade do ensaio em dias, a resistência medida em MPa e a data do ensaio (AAAA-MM-DD). " +
         "Considere APENAS os marcos de 7 e 28 dias — ignore outras idades. " +
         "Quando houver mais de um corpo de prova na mesma idade, informe a média em MPa daquela idade, um único resultado por idade. " +

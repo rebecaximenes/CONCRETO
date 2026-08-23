@@ -152,7 +152,7 @@ export default function Laudos() {
     <div className="space-y-5">
       <PageHeader
         title="Laudos de ensaio"
-        description="Envie o PDF: a IA lê o laudo, casa pela nota fiscal e preenche as resistências."
+        description="Envie o PDF: a IA lê o laudo, casa pela nota de remessa e preenche as resistências."
       />
 
       {canUpload ? (
@@ -160,7 +160,7 @@ export default function Laudos() {
           <CardHeader>
             <CardTitle>Enviar laudo</CardTitle>
             <CardDescription>
-              O vínculo com a concretagem é feito pelo número da nota fiscal citado
+              O vínculo com a concretagem é feito pelo número da nota de remessa citado
               no laudo.
             </CardDescription>
           </CardHeader>
@@ -245,7 +245,7 @@ export default function Laudos() {
                 {report.extraction_status === "needs_review" ? (
                   <Alert variant="warning">
                     <AlertDescription>
-                      A IA não encontrou um recebimento único com essa nota fiscal.
+                      A IA não encontrou um recebimento único com essa nota de remessa.
                       Confira o número da NF no laudo e no recebimento.
                     </AlertDescription>
                   </Alert>

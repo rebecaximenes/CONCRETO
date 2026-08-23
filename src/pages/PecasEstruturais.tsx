@@ -44,7 +44,7 @@ import { useSite } from "@/providers/SiteProvider";
  *
  * O fck e de cada peca (estacas, blocos, laje...), nao de um traco avulso:
  * e o projeto que define o fck de cada uma. O recebimento do caminhao
- * confere a nota fiscal contra o fck da peca da concretagem.
+ * confere a nota de remessa contra o fck da peca da concretagem.
  *
  * Perda prevista (m³) e maximo a ser utilizado sao calculados pelo banco.
  * A tela mostra a mesma conta ao vivo para o usuario conferir antes de
@@ -425,7 +425,7 @@ export default function PecasEstruturais() {
               {form?.id ? "Editar peça estrutural" : "Nova peça estrutural"}
             </DialogTitle>
             <DialogDescription>
-              O fck da peça é comparado com a nota fiscal no recebimento da
+              O fck da peça é comparado com a nota de remessa no recebimento da
               betoneira.
             </DialogDescription>
           </DialogHeader>

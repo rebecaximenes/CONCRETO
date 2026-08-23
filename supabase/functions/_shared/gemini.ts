@@ -8,7 +8,7 @@ import { HttpError } from "./supabase.ts";
  * 3.x tambem nao servem por padrao — no nivel gratuito a cota deles e ZERO
  * (429 na primeira chamada); exigem faturamento ativo.
  *
- * `gemini-3.5-flash` foi verificado contra nota fiscal e laudo reais em PDF:
+ * `gemini-3.5-flash` foi verificado contra nota de remessa e laudo reais em PDF:
  * acerta o numero da NF ate em foto torta e desfocada, e calcula a media por
  * idade no laudo. Trocavel pelo secret GEMINI_MODEL, sem novo deploy.
  */

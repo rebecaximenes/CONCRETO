@@ -1,4 +1,4 @@
-// Casamento laudo <-> recebimento pelo numero da nota fiscal, a chave de
+// Casamento laudo <-> recebimento pelo numero da nota de remessa, a chave de
 // vinculo do processo (docs/PROCESSO.md). Fica no _shared porque a Edge
 // Function match-report-to-concreting e a extract-test-report usam o mesmo
 // codigo — cada function so pode ter um Deno.serve.

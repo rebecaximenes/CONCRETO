@@ -19,7 +19,7 @@ interface ExportRow {
   Concretagem: string;
   Data: string;
   Status: string;
-  "Nota fiscal": string;
+  "Nota de remessa": string;
   Caminhão: string;
   "fck do traço (MPa)": number | string;
   "Slump (cm)": number | string;
@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
             Concretagem: concreting.title ?? "Sem título",
             Data: concreting.concreting_date,
             Status: STATUS_LABEL[concreting.status] ?? concreting.status,
-            "Nota fiscal": receipt.invoice_number || "—",
+            "Nota de remessa": receipt.invoice_number || "—",
             Caminhão: receipt.truck_number,
             "fck do traço (MPa)": receipt.fck_required,
             "Slump (cm)": receipt.slump_value,

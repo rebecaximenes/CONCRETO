@@ -155,7 +155,7 @@ export default function ConcretagemDetalhe() {
             Recebimentos de caminhão
           </CardTitle>
           <CardDescription>
-            Nota fiscal, caminhão, slump e fck conferidos na chegada.
+            Nota de remessa, caminhão, slump e fck conferidos na chegada.
           </CardDescription>
         </CardHeader>
         <CardContent>

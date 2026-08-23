@@ -207,7 +207,7 @@ export interface Database {
           discharge_end_at: string | null;
           /** Número da remessa no portal da concreteira. */
           supplier_delivery_code: string | null;
-          /** Volume entregue por este caminhão, conforme a nota fiscal. */
+          /** Volume entregue por este caminhão, conforme a nota de remessa. */
           volume_m3: number | null;
           /** Cor da área marcada na planta para este caminhão (#RRGGBB). */
           marking_color: string | null;

@@ -32,20 +32,40 @@ interface InvoiceExtraction {
   truck_number: string | null;
   fck: number | null;
   volume_m3: number | null;
+  /** Saida da usina no impresso = emissao da NF, o primeiro dos horarios. */
+  saida_usina: string | null;
   confidence: number;
 }
 
+// O documento que a obra recebe nao e uma nota fiscal comum: e o
+// "COMPROVANTE DE SERVICO DE CONCRETAGEM" da concreteira, um formulario
+// impresso com rotulos proprios. O prompt cita os rotulos reais porque a
+// leitura generica confundia a placa com o nome do motorista.
 const PROMPT =
-  "Esta é a foto de uma nota fiscal de concreto usinado entregue em obra no Brasil. " +
-  "Extraia, quando aparecerem com clareza:\n" +
-  "- invoice_number: o NÚMERO DA NOTA FISCAL (apenas dígitos, sem a série, sem pontos, sem zeros à esquerda).\n" +
-  "- truck_number: a identificação do caminhão betoneira — a placa (formato ABC1D23 ou ABC-1234) " +
-  "ou o número do equipamento/betoneira impresso na nota. Devolva sem espaços e sem hífen.\n" +
-  "- fck: a resistência característica do concreto em MPa, apenas o número " +
-  "(de textos como 'FCK 30', 'C30', '30 MPa').\n" +
-  "- volume_m3: o volume entregue em metros cúbicos, apenas o número " +
-  "(de textos como '8,00 M3', 'VOLUME 8 m³').\n" +
-  "Devolva nulo em qualquer campo que não apareça ou esteja ilegível — nunca invente um valor. " +
+  "Esta é a foto de um COMPROVANTE DE SERVIÇO DE CONCRETAGEM de concreto usinado " +
+  "entregue em obra no Brasil (pode vir da concreteira LE MIX). É um formulário " +
+  "impresso com campos rotulados. Extraia:\n" +
+  "- invoice_number: o número do documento, no campo rotulado \"Nº\" no canto " +
+  "superior direito (e repetido no rodapé). Vem no formato \"015.545\" — devolva " +
+  "apenas os dígitos, sem o ponto e sem os zeros à esquerda: \"15545\".\n" +
+  "- truck_number: a PLACA do caminhão, no bloco \"DADOS DE TRANSPORTE\", campo " +
+  "rotulado \"PLACA\". Vem como \"RGS-8D94\" — devolva sem hífen e sem espaços: " +
+  "\"RGS8D94\". Se a PLACA não aparecer, use o campo \"BETONEIRA\". Nunca use o " +
+  "campo \"REMOTORISTA\" nem o nome do motorista.\n" +
+  "- fck: a resistência em MPa, no campo \"FCK\" da linha \"Materiais adquiridos " +
+  "para preparo e aplicação de\". Aparece como \"FCK 30,0 MPA\" — devolva 30. " +
+  "Também pode aparecer na descrição do serviço como \"FCK 30,0 B0 ST 240\".\n" +
+  "- volume_m3: o volume em metros cúbicos, no campo \"QUANT.\" do bloco \"DADOS DO " +
+  "SERVIÇO\" (unidade \"M3\"), ou na mesma linha \"Materiais adquiridos para preparo " +
+  "e aplicação de 8,0 M3\". Vem com vírgula decimal: \"8,0\" — devolva 8.\n" +
+  "- saida_usina: o horário de saída da usina, no campo \"SAÍDA USINA\" do bloco " +
+  "\"DADOS DE TRANSPORTE\", ou no campo \"HORA DA SAÍDA\" do cabeçalho. " +
+  "Formato \"HH:MM\", ex.: \"11:00\".\n" +
+  "ATENÇÃO aos campos que costumam vir EM BRANCO no impresso porque são " +
+  "preenchidos à mão na obra: \"CHEGADA OBRA\", \"INÍCIO DESCARGA\", \"FIM " +
+  "DESCARGA\", \"SAÍDA OBRA\", \"CHEGADA USINA\". Se estiverem vazios, devolva " +
+  "nulo — não invente.\n" +
+  "Devolva nulo em qualquer campo que não apareça ou esteja ilegível. " +
   "Em confidence, informe de 0 a 1 o quanto você confia na leitura como um todo.";
 
 const SCHEMA = {
@@ -55,6 +75,7 @@ const SCHEMA = {
     truck_number: { type: "string", nullable: true },
     fck: { type: "number", nullable: true },
     volume_m3: { type: "number", nullable: true },
+    saida_usina: { type: "string", nullable: true },
     confidence: { type: "number" },
   },
   required: ["invoice_number", "confidence"],
@@ -64,6 +85,16 @@ const SCHEMA = {
 function text(value: string | null | undefined): string | null {
   const trimmed = (value ?? "").trim();
   return trimmed === "" ? null : trimmed;
+}
+
+/** "9:00" vira "09:00"; qualquer coisa fora de HH:MM vira nulo. */
+function clockTime(value: string | null | undefined): string | null {
+  const match = (value ?? "").trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+  return `${String(hour).padStart(2, "0")}:${match[2]}`;
 }
 
 /** Numero so vale se for finito e positivo — a IA as vezes devolve 0. */
@@ -127,6 +158,7 @@ Deno.serve(async (req) => {
         truck_number: text(extraction.truck_number),
         fck: positive(extraction.fck),
         volume_m3: positive(extraction.volume_m3),
+        saida_usina: clockTime(extraction.saida_usina),
         confidence: extraction.confidence ?? 0,
         invoice_photo_path: photoPath,
       });
@@ -226,6 +258,7 @@ Deno.serve(async (req) => {
       truck_number: truck,
       fck: positive(extraction.fck),
       volume_m3: volume,
+      saida_usina: clockTime(extraction.saida_usina),
       ocr_status: "done",
       confidence: extraction.confidence,
     });

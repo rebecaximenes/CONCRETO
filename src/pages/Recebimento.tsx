@@ -130,6 +130,8 @@ export default function Recebimento() {
         truck_number: string | null;
         fck: number | null;
         volume_m3: number | null;
+        /** "SAÍDA USINA" no impresso — o primeiro dos quatro horários. */
+        saida_usina: string | null;
         confidence: number;
       };
 
@@ -148,6 +150,12 @@ export default function Recebimento() {
       }
       if (read.volume_m3 !== null && !volume) {
         setVolume(String(read.volume_m3));
+        filled += 1;
+      }
+      // Saida da central e o horario que o impresso ja traz pronto; os outros
+      // tres sao anotados na obra.
+      if (read.saida_usina && !issuedTime) {
+        setIssuedTime(read.saida_usina);
         filled += 1;
       }
 

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Layers, Pencil, Plus } from "lucide-react";
+import { Building2, Layers, Pencil, Plus , FileText } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -179,6 +179,12 @@ export default function Obras() {
                 </p>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/obras/${site.id}/plantas`}>
+                    <FileText />
+                    Plantas
+                  </Link>
+                </Button>
                 <Button asChild variant="outline" size="sm">
                   <Link to={`/obras/${site.id}/pecas-estruturais`}>
                     <Layers />

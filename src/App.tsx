@@ -21,7 +21,9 @@ import Lancamento from "@/pages/Lancamento";
 import Laudos from "@/pages/Laudos";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
+import Mapa from "@/pages/Mapa";
 import Obras from "@/pages/Obras";
+import Plantas from "@/pages/Plantas";
 import Pendencias from "@/pages/Pendencias";
 import Recebimento from "@/pages/Recebimento";
 import Relatorios from "@/pages/Relatorios";
@@ -75,6 +77,8 @@ export default function App() {
                 >
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/obras" element={<Obras />} />
+                  <Route path="/obras/:siteId/plantas" element={<Plantas />} />
+                  <Route path="/mapa/:concretingId" element={<Mapa />} />
                   <Route
                     path="/obras/:siteId/pecas-estruturais"
                     element={<PecasEstruturais />}

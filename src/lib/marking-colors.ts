@@ -1,9 +1,15 @@
 /**
- * Paleta da marcacao da planta — uma cor por caminhao.
+ * Paleta da marcacao da planta — uma cor por entrega.
  *
- * A cor nao se escolhe a mao: o caminhao recebe a proxima cor livre na ordem
- * da descarga. Assim ninguem repete cor por engano e a legenda nunca sai
- * errada, que e o erro que a planta pintada a mao permite hoje.
+ * A cor nao se escolhe a mao: cada ENTREGA recebe a proxima cor livre da
+ * planta, na ordem da descarga. Assim ninguem repete cor por engano e a
+ * legenda nunca sai errada, que e o erro que a planta pintada a mao permite.
+ *
+ * A cor e da entrega (da nota), nao do caminhao: a legenda impressa da obra
+ * lista uma linha por NOTA FISCAL, e o mesmo caminhao volta em outro dia com
+ * outra nota — e outra cor. E o escopo e a PLANTA inteira, nao o dia: a
+ * planta acumula meses de concretagem e duas notas nela nunca podem
+ * compartilhar cor.
  *
  * Criterios da paleta, nesta ordem:
  *
@@ -12,12 +18,14 @@
  *     o branco e 2,6:1 com o preto, medido em todas as 16.
  *  2. Nenhum par parecido: a menor distancia RGB entre duas cores da paleta e
  *     67 (de 441 possiveis). A primeira versao que escrevi a mao tinha um par
- *     a distancia 14 — dois caminhoes ganhariam a mesma cor na pratica.
+ *     a distancia 14 — duas entregas ganhariam a mesma cor na pratica.
  *  3. As cores foram escolhidas por busca, nao a olho: pega-se sempre a mais
  *     distante das ja escolhidas, entre as que passam no contraste.
  *
- * 16 cores cobrem um dia de concretagem com folga: o maior dia da planilha
- * da obra teve 6 caminhoes.
+ * 16 cores cobrem com folga o que fica visivel de uma vez: o maior dia da
+ * planilha da obra teve 6 caminhoes. Numa planta que acumula meses, a paleta
+ * acaba dando a volta — e aceitavel, porque a legenda tras data e nota
+ * fiscal junto da cor.
  */
 export const MARKING_COLORS = [
   "#c0392b", // vermelho tijolo
@@ -39,11 +47,11 @@ export const MARKING_COLORS = [
 ] as const;
 
 /**
- * Proxima cor livre para um caminhao.
+ * Proxima cor livre da planta.
  *
- * Reaproveita a cor quando o caminhao ja tem uma — o mesmo caminhao mantem
- * sua cor em todas as marcacoes daquela peca. Passando de 16, a paleta
- * recomeca: e melhor repetir cor do que ficar sem marcar.
+ * `usedColors` sao as cores ja gastas NESTA planta, de todas as entregas.
+ * Passando de 16, a paleta recomeca: e melhor repetir uma cor antiga, de uma
+ * concretagem de meses atras, do que deixar a estaca sem marcar.
  */
 export function nextMarkingColor(usedColors: string[]): string {
   const free = MARKING_COLORS.find((color) => !usedColors.includes(color));

@@ -436,7 +436,6 @@ export interface Database {
           /** Calculada pelo banco: previsto + perda prevista. */
           max_volume_m3: number;
           status: "nao_iniciado" | "andamento" | "concluido";
-          drawing_path: string | null;
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -459,7 +458,6 @@ export interface Database {
           planned_volume_m3: number;
           waste_percent?: number;
           status?: "nao_iniciado" | "andamento" | "concluido";
-          drawing_path?: string | null;
           notes?: string | null;
         };
         Update: Partial<
@@ -467,10 +465,44 @@ export interface Database {
         >;
         Relationships: [];
       };
-      element_drawing_marks: {
+      site_drawings: {
         Row: {
           id: string;
-          structural_element_id: string;
+          site_id: string;
+          /** A nomenclatura do carimbo da prancha. */
+          name: string;
+          sheet_code: string | null;
+          revision: string | null;
+          file_path: string;
+          page_count: number;
+          /** Vínculo opcional: uma planta pode cobrir mais de uma peça. */
+          structural_element_id: string | null;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          site_id: string;
+          name: string;
+          sheet_code?: string | null;
+          revision?: string | null;
+          file_path: string;
+          page_count?: number;
+          structural_element_id?: string | null;
+          notes?: string | null;
+          created_by: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["site_drawings"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      drawing_marks: {
+        Row: {
+          id: string;
+          drawing_id: string;
           truck_receipt_id: string | null;
           page_number: number;
           /** Normalizados de 0 a 1: caem no lugar certo em qualquer zoom. */
@@ -487,7 +519,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          structural_element_id: string;
+          drawing_id: string;
           truck_receipt_id?: string | null;
           page_number?: number;
           points: Json;
@@ -498,7 +530,7 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<
-          Database["public"]["Tables"]["element_drawing_marks"]["Insert"]
+          Database["public"]["Tables"]["drawing_marks"]["Insert"]
         >;
         Relationships: [];
       };
@@ -541,12 +573,14 @@ export interface Database {
         };
         Relationships: [];
       };
-      element_drawing_legend: {
+      drawing_legend: {
         Row: {
-          structural_element_id: string;
+          drawing_id: string;
           mark_id: string;
           page_number: number;
           shape: "ponto" | "area";
+          points: Json;
+          radius: number;
           color: string;
           label: string | null;
           truck_receipt_id: string | null;
@@ -554,6 +588,10 @@ export interface Database {
           truck_number: string | null;
           volume_m3: number | null;
           marked_date: string | null;
+          concreting_id: string | null;
+          concreting_date: string | null;
+          structural_element_id: string | null;
+          structural_element_name: string | null;
         };
         Relationships: [];
       };
@@ -591,4 +629,5 @@ export type Views<T extends keyof Database["public"]["Views"]> =
 
 export type StructuralElement = Tables<"structural_elements">;
 export type ElementVolumeProgress = Views<"element_volume_progress">;
-export type ElementDrawingLegend = Views<"element_drawing_legend">;
+export type DrawingLegend = Views<"drawing_legend">;
+export type SiteDrawing = Tables<"site_drawings">;

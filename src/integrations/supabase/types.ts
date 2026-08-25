@@ -573,6 +573,17 @@ export interface Database {
         };
         Relationships: [];
       };
+      element_daily_volume: {
+        Row: {
+          structural_element_id: string;
+          site_id: string;
+          concreting_date: string;
+          concretings_count: number;
+          trucks_count: number;
+          volume_m3: number;
+        };
+        Relationships: [];
+      };
       drawing_legend: {
         Row: {
           drawing_id: string;
@@ -629,5 +640,6 @@ export type Views<T extends keyof Database["public"]["Views"]> =
 
 export type StructuralElement = Tables<"structural_elements">;
 export type ElementVolumeProgress = Views<"element_volume_progress">;
+export type ElementDailyVolume = Views<"element_daily_volume">;
 export type DrawingLegend = Views<"drawing_legend">;
 export type SiteDrawing = Tables<"site_drawings">;

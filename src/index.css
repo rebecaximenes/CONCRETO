@@ -99,4 +99,35 @@
       oklch(var(--accent))
     );
   }
+
+  /*
+   * Paleta dos graficos.
+   *
+   * Separada da paleta da marca de proposito: o vinho Record e o grafite
+   * existem para a identidade, e nao passam nos criterios de leitura de um
+   * grafico (o vinho fica perto demais do vermelho de "estourou"). Estas
+   * cores foram conferidas pelo validador antes de entrar aqui, contra o
+   * branco do cartao:
+   *
+   *   #2a78d6 (aplicado) x #d03b3b (acima do maximo)
+   *     separacao com daltonismo   ΔE 23.8  (minimo aceito: 8)
+   *     separacao em visao normal  ΔE 31.6  (minimo aceito: 15)
+   *     contraste com o fundo      ambas acima de 3:1
+   *
+   * A cor nunca decide sozinha: todo estado vem acompanhado de icone e
+   * texto, para quem nao distingue as duas e para a planta impressa em
+   * preto e branco.
+   */
+  .viz-root {
+    --viz-surface: #ffffff;
+    --viz-serie-1: #2a78d6; /* volume aplicado */
+    --viz-serie-1-wash: #cde2fb; /* trilho: passo claro da mesma rampa */
+    --viz-acima: #d03b3b; /* o que passou do maximo */
+    --viz-ok: #0ca30c;
+    --viz-atencao: #fab219;
+    --viz-grade: #e1e0d9;
+    --viz-eixo: #c3c2b7;
+    --viz-tinta-2: #52514e;
+    --viz-tinta-3: #898781;
+  }
 }

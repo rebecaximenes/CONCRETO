@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AvancoObra } from "@/components/AvancoObra";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -273,7 +274,10 @@ export default function PecasEstruturais() {
           }
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-4">
+          <AvancoObra elements={elementsQuery.data ?? []} />
+
+          <div className="space-y-2">
           {(elementsQuery.data ?? []).map((element) => (
             <Card key={element.structural_element_id}>
               <CardContent className="space-y-3 p-4">
@@ -385,36 +389,18 @@ export default function PecasEstruturais() {
                   </div>
                 </dl>
 
-                <div>
-                  <div
-                    className="h-2 w-full overflow-hidden rounded-full bg-muted"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(
-                      Math.min(element.progress_ratio ?? 0, 1) * 100,
-                    )}
-                    aria-label={`Avanço de ${element.name}`}
-                  >
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{
-                        width: `${Math.min(
-                          Math.max(element.progress_ratio ?? 0, 0),
-                          1,
-                        ) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {element.trucks_count} caminhões em{" "}
-                    {element.concretings_count} concretagens · perda real{" "}
-                    {formatNumber(element.trend_waste_percent, "%")}
-                  </p>
-                </div>
+                {/* A barra de avanco desta peca fica no bloco "Previsto x
+                    realizado", no topo: repetir aqui seria a mesma informacao
+                    com dois desenhos diferentes. */}
+                <p className="text-sm text-muted-foreground">
+                  {element.trucks_count} caminhões em{" "}
+                  {element.concretings_count} concretagens · perda real{" "}
+                  {formatNumber(element.trend_waste_percent, "%")}
+                </p>
               </CardContent>
             </Card>
           ))}
+          </div>
         </div>
       )}
 

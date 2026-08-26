@@ -175,6 +175,13 @@ export function PlantaMarcada({
 
   const encaixar = React.useCallback(() => setVista({ zoom: 1, x: 0, y: 0 }), []);
 
+  // Trocar de planta volta ao encaixe. O deslocamento guardado era de OUTRO
+  // desenho: mantido, a planta nova abriria ampliada num canto que nao quer
+  // dizer nada nela.
+  React.useEffect(() => {
+    setVista({ zoom: 1, x: 0, y: 0 });
+  }, [fileUrl, pageNumber]);
+
   // Redesenha em resolucao maior so quando o zoom muda de degrau, e depois
   // que o gesto para: rasterizar a cada pinca travaria o aparelho.
   React.useEffect(() => {
